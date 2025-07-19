@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -34,6 +35,15 @@ export function TicketSelection() {
   const { toast } = useToast();
   const { addTicket } = usePassFlowActions();
   const tickets = useTickets();
+
+  useEffect(() => {
+    if (generatedTicket) {
+      const timer = setTimeout(() => {
+        handleCloseDialog();
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [generatedTicket]);
 
   const getNextTicketNumber = (prefix: string) => {
     const relevantTickets = tickets.filter(t => t.number.startsWith(prefix));
@@ -108,7 +118,7 @@ export function TicketSelection() {
             </div>
             <DialogTitle className="text-2xl">Senha Gerada!</DialogTitle>
             <DialogDescription>
-              Aguarde para ser chamado.
+              Aguarde para ser chamado. Este aviso fechará em 3 segundos.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
