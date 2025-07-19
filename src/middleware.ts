@@ -9,49 +9,55 @@ export function middleware(request: NextRequest) {
   const protectedAdminRoutes = ['/admin'];
   const protectedClerkRoutes = ['/clerk'];
   
-  const isPublicRoute = ['/', '/get-ticket', '/display'].includes(pathname);
+  const isPublicRoute = ['/', '/get-ticket', '/display'].includes(pathname) || pathname.startsWith('/api/login');
   if (isPublicRoute) {
     return NextResponse.next();
   }
 
   const isAdminRoute = protectedAdminRoutes.some(p => pathname.startsWith(p));
   const isClerkRoute = protectedClerkRoutes.some(p => pathname.startsWith(p));
-
-  // If trying to access a protected route without a session cookie
-  if (!cookie && (isAdminRoute || isClerkRoute)) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/';
-    return NextResponse.redirect(url);
-  }
-
-  // If there is a session cookie
-  if (cookie) {
-    try {
-      const session = JSON.parse(cookie.value);
-      const { role } = session;
-
-      // If user is not admin and tries to access admin routes
-      if (isAdminRoute && role !== 'admin') {
-         const url = request.nextUrl.clone();
-         url.pathname = '/clerk'; // Redirect clerk to their own dashboard
-         return NextResponse.redirect(url);
-      }
-      
-      // If user is not clerk or admin and tries to access clerk route
-      if (isClerkRoute && role !== 'clerk' && role !== 'admin') {
-         const url = request.nextUrl.clone();
-         url.pathname = '/'; // Redirect to login
-         return NextResponse.redirect(url);
-      }
-      
-    } catch (e) {
-      // Invalid cookie, treat as logged out
+  
+  // Rule: If no session cookie exists, redirect any protected route access to login.
+  if (!cookie) {
+    if (isAdminRoute || isClerkRoute) {
       const url = request.nextUrl.clone();
       url.pathname = '/';
-      const response = NextResponse.redirect(url);
-      response.cookies.delete('auth-session'); // Clear the invalid cookie
-      return response;
+      return NextResponse.redirect(url);
     }
+    return NextResponse.next();
+  }
+
+  // Rule: If a session cookie exists, validate it and redirect based on role.
+  try {
+    const session = JSON.parse(cookie.value);
+    const { role } = session;
+
+    if (!role) {
+        throw new Error("Invalid session data");
+    }
+
+    // Redirect clerks trying to access admin pages.
+    if (isAdminRoute && role !== 'admin') {
+       const url = request.nextUrl.clone();
+       url.pathname = '/clerk'; // Redirect clerk to their own dashboard
+       return NextResponse.redirect(url);
+    }
+    
+    // Redirect non-clerks/non-admins from clerk pages.
+    if (isClerkRoute && !['clerk', 'admin'].includes(role)) {
+       const url = request.nextUrl.clone();
+       url.pathname = '/'; // Redirect to login
+       return NextResponse.redirect(url);
+    }
+    
+  } catch (e) {
+    // The cookie is invalid or malformed.
+    // Redirect to login and clear the bad cookie.
+    const url = request.nextUrl.clone();
+    url.pathname = '/';
+    const response = NextResponse.redirect(url);
+    response.cookies.delete('auth-session'); 
+    return response;
   }
 
   return NextResponse.next();
@@ -59,5 +65,5 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   // Matcher avoids running middleware on static files and API routes
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!api/logout|_next/static|_next/image|favicon.ico|notification.mp3).*)'],
 }
