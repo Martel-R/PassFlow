@@ -18,10 +18,10 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { mockServices } from "@/lib/mock-data";
+import { getServices, addTicket as dbAddTicket } from "@/lib/db";
 import { Ticket as TicketIcon, ArrowRight, UserCheck, Briefcase } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { usePassFlowActions, useTickets } from "@/lib/store";
+import { usePassFlowActions } from "@/lib/store";
 import type { Service, Ticket } from "@/lib/types";
 
 const serviceIcons: Record<Service['category'], React.ReactNode> = {
@@ -30,11 +30,19 @@ const serviceIcons: Record<Service['category'], React.ReactNode> = {
 };
 
 export function TicketSelection() {
+  const [services, setServices] = useState<Service[]>([]);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [generatedTicket, setGeneratedTicket] = useState<Ticket | null>(null);
   const { toast } = useToast();
-  const { addTicket } = usePassFlowActions();
-  const tickets = useTickets();
+  const { refreshTickets } = usePassFlowActions();
+
+  useEffect(() => {
+    const fetchServices = async () => {
+      const dbServices = await getServices();
+      setServices(dbServices);
+    };
+    fetchServices();
+  }, []);
 
   useEffect(() => {
     if (generatedTicket) {
@@ -45,31 +53,25 @@ export function TicketSelection() {
     }
   }, [generatedTicket]);
 
-  const getNextTicketNumber = (prefix: string) => {
-    const relevantTickets = tickets.filter(t => t.number.startsWith(prefix));
-    const nextNumber = relevantTickets.length + 1;
-    return `${prefix}-${String(nextNumber).padStart(3, "0")}`;
-  }
+  const handleServiceClick = async (service: Service) => {
+    try {
+      const newTicket = await dbAddTicket(service);
+      setGeneratedTicket(newTicket);
+      setSelectedService(service);
+      await refreshTickets();
 
-  const handleServiceClick = (service: Service) => {
-    const newTicketNumber = getNextTicketNumber(service.prefix);
-
-    const newTicket: Ticket = {
-      id: `t-${Date.now()}`,
-      number: newTicketNumber,
-      serviceName: service.name,
-      timestamp: new Date(),
-      status: "waiting",
-    };
-    
-    addTicket(newTicket);
-    setSelectedService(service);
-    setGeneratedTicket(newTicket);
-
-    toast({
-      title: "Senha gerada com sucesso!",
-      description: `Sua senha é ${newTicketNumber}.`,
-    });
+      toast({
+        title: "Senha gerada com sucesso!",
+        description: `Sua senha é ${newTicket.number}.`,
+      });
+    } catch (error) {
+       toast({
+        title: "Erro ao gerar senha",
+        description: "Não foi possível gerar a senha. Tente novamente.",
+        variant: "destructive"
+      });
+      console.error(error);
+    }
   };
 
   const handleCloseDialog = () => {
@@ -86,7 +88,7 @@ export function TicketSelection() {
         </p>
       </div>
       <div className="grid w-full max-w-4xl gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {mockServices.map((service) => (
+        {services.map((service) => (
           <Card
             key={service.id}
             className="flex flex-col justify-between transform transition-transform duration-300 hover:scale-105 hover:shadow-xl cursor-pointer"

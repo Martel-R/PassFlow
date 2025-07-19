@@ -3,7 +3,7 @@
 
 import { create } from 'zustand';
 import { Ticket } from './types';
-import { mockTickets } from './mock-data';
+import { getTickets } from './db';
 import { useEffect, useRef } from 'react';
 
 // This custom hook ensures that the store is initialized only once
@@ -25,33 +25,37 @@ export type CalledTicket = {
 };
 
 type PassFlowState = {
-  hydrated: boolean;
   tickets: Ticket[];
   calledTicket: CalledTicket | null;
   callHistory: CalledTicket[];
   actions: {
-    initialize: () => void;
-    addTicket: (ticket: Ticket) => void;
-    updateTicket: (ticket: Ticket) => void;
+    initialize: () => Promise<void>;
+    refreshTickets: () => Promise<void>;
     callTicket: (ticket: Ticket, counterName: string) => void;
   };
 };
 
 const usePassFlowStore = create<PassFlowState>((set, get) => ({
-  hydrated: false,
   tickets: [],
   calledTicket: null,
   callHistory: [],
   actions: {
-    initialize: () => {
-        if (!get().hydrated) {
-            set({ tickets: mockTickets, hydrated: true });
+    initialize: async () => {
+        try {
+            const tickets = await getTickets();
+            set({ tickets });
+        } catch (error) {
+            console.error("Failed to initialize store with DB data:", error);
         }
     },
-    addTicket: (ticket) => set((state) => ({ tickets: [...state.tickets, ticket] })),
-    updateTicket: (ticket) => set((state) => ({
-      tickets: state.tickets.map(t => t.id === ticket.id ? ticket : t)
-    })),
+    refreshTickets: async () => {
+        try {
+            const tickets = await getTickets();
+            set({ tickets });
+        } catch (error) {
+            console.error("Failed to refresh tickets from DB:", error);
+        }
+    },
     callTicket: (ticket, counterName) => {
       const newCall: CalledTicket = {
         number: ticket.number,
@@ -60,7 +64,6 @@ const usePassFlowStore = create<PassFlowState>((set, get) => ({
       };
       set((state) => ({
         calledTicket: newCall,
-        // Add to history only if it's a new call or a different ticket
         callHistory: (state.calledTicket?.number !== newCall.number || state.calledTicket?.counter !== newCall.counter)
             ? [newCall, ...state.callHistory].slice(0, 10) 
             : state.callHistory,

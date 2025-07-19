@@ -1,9 +1,6 @@
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,9 +13,13 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PlusCircle, Edit, Trash2 } from "lucide-react";
-import { mockServices } from "@/lib/mock-data";
+import { getServices, getCategories } from "@/lib/db";
 
-export default function AdminServicesPage() {
+export default async function AdminServicesPage() {
+  const services = await getServices();
+  const categories = await getCategories();
+  const categoryMap = new Map(categories.map(c => [c.id, c.name]));
+
   return (
     <div className="flex-1 space-y-4 p-4 sm:p-8 pt-6">
       <div className="flex items-center justify-between">
@@ -48,7 +49,7 @@ export default function AdminServicesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockServices.map((service) => (
+              {services.map((service) => (
                 <TableRow key={service.id}>
                   <TableCell className="font-medium">{service.name}</TableCell>
                   <TableCell>
@@ -60,9 +61,7 @@ export default function AdminServicesPage() {
                       }
                       className={service.category === 'priority' ? 'bg-primary' : ''}
                     >
-                      {service.category === "priority"
-                        ? "Prioritário"
-                        : "Geral"}
+                      {categoryMap.get(service.category) || service.category}
                     </Badge>
                   </TableCell>
                   <TableCell>{service.prefix}</TableCell>

@@ -12,9 +12,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { PlusCircle, Edit, Trash2 } from "lucide-react";
-import { mockCategories } from "@/lib/mock-data";
+import { getCategories } from "@/lib/db";
 
-export default function AdminCategoriesPage() {
+export default async function AdminCategoriesPage() {
+  const categories = await getCategories();
+
   return (
     <div className="flex-1 space-y-4 p-4 sm:p-8 pt-6">
       <div className="flex items-center justify-between">
@@ -42,7 +44,7 @@ export default function AdminCategoriesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockCategories.map((category) => (
+              {categories.map((category) => (
                 <TableRow key={category.id}>
                   <TableCell className="font-mono">{category.id}</TableCell>
                   <TableCell className="font-medium">{category.name}</TableCell>

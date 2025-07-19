@@ -13,11 +13,16 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PlusCircle, Edit, Trash2 } from "lucide-react";
-import { mockCounters, mockCategories } from "@/lib/mock-data";
+import { getCounters, getCategories } from "@/lib/db";
 
-export default function AdminCountersPage() {
+export default async function AdminCountersPage() {
+  const counters = await getCounters();
+  const categories = await getCategories();
+  
+  const categoryMap = new Map(categories.map(c => [c.id, c.name]));
+
   const getCategoryName = (categoryId: string) => {
-    return mockCategories.find(c => c.id === categoryId)?.name || categoryId;
+    return categoryMap.get(categoryId) || categoryId;
   };
 
   return (
@@ -47,7 +52,7 @@ export default function AdminCountersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockCounters.map((counter) => (
+              {counters.map((counter) => (
                 <TableRow key={counter.id}>
                   <TableCell className="font-medium">{counter.name}</TableCell>
                   <TableCell>

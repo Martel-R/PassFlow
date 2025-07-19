@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -38,8 +38,8 @@ import {
   Clock,
   Tag
 } from "lucide-react";
-import { mockCounters, mockServices } from "@/lib/mock-data";
-import { Ticket } from "@/lib/types";
+import { getCounterById, getServiceById, finalizeTicket, updateTicketStatus } from "@/lib/db";
+import { Ticket, Counter } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -47,17 +47,27 @@ import { useTickets, usePassFlowActions } from "@/lib/store";
 
 export function ClerkDashboard() {
   const tickets = useTickets();
-  const { callTicket, addTicket, updateTicket } = usePassFlowActions();
+  const { callTicket, refreshTickets } = usePassFlowActions();
   const [activeTicket, setActiveTicket] = useState<Ticket | null>(null);
   const [isFinalizeModalOpen, setFinalizeModalOpen] = useState(false);
   const [notes, setNotes] = useState("");
   const [tags, setTags] = useState("");
+  const [clerkCounter, setClerkCounter] = useState<Counter | null>(null);
   const { toast } = useToast();
+  
+  useEffect(() => {
+    // In a real app, the clerk's counter would be determined by login.
+    // Here, we'll just assign them to the first one.
+    const fetchCounter = async () => {
+        const counter = await getCounterById("1");
+        setClerkCounter(counter);
+    };
+    fetchCounter();
+  }, []);
 
-  const waitingTickets = useMemo(() => tickets.filter(t => t.status === 'waiting').sort((a,b) => a.timestamp.getTime() - b.timestamp.getTime()), [tickets]);
-  const clerkCounter = mockCounters[0];
+  const waitingTickets = useMemo(() => tickets.filter(t => t.status === 'waiting').sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime()), [tickets]);
 
-  const handleCallNext = () => {
+  const handleCallNext = async () => {
     if (activeTicket && activeTicket.status !== 'finished') {
         toast({
             title: "Atendimento em andamento",
@@ -66,31 +76,35 @@ export function ClerkDashboard() {
         });
         return;
     }
+    
+    if (!clerkCounter) {
+        toast({ title: "Erro", description: "Balcão do atendente não configurado.", variant: "destructive" });
+        return;
+    }
 
-    const serviceMap = new Map(mockServices.map(s => [s.name, s]));
-    const getCategoryForTicket = (ticket: Ticket) => {
-        return serviceMap.get(ticket.serviceName)?.category || 'general';
-    };
-
+    const services = await Promise.all(waitingTickets.map(t => getServiceById(t.serviceId || '')));
+    
     const nextTicket = [...waitingTickets]
-        .sort((a,b) => {
-             const categoryA = getCategoryForTicket(a);
-             const categoryB = getCategoryForTicket(b);
-             if (categoryA === 'priority' && categoryB !== 'priority') return -1;
-             if (categoryA !== 'priority' && categoryB === 'priority') return 1;
-             return a.timestamp.getTime() - b.timestamp.getTime();
+        .map((ticket, index) => ({ ticket, service: services[index] }))
+        .filter(({ service }) => service !== null)
+        .sort((a, b) => {
+             if (!a.service || !b.service) return 0;
+             if (a.service.category === 'priority' && b.service.category !== 'priority') return -1;
+             if (a.service.category !== 'priority' && b.service.category === 'priority') return 1;
+             return a.ticket.timestamp.getTime() - b.ticket.timestamp.getTime();
         })
-        .find(ticket => {
-            const serviceCategory = getCategoryForTicket(ticket);
-            return clerkCounter.assignedCategories.includes(serviceCategory);
-        });
+        .find(({ service }) => {
+            if (!service) return false;
+            return clerkCounter.assignedCategories.includes(service.category);
+        })?.ticket;
 
     if (nextTicket) {
       const updatedTicket = { ...nextTicket, status: 'in-progress' as const, counter: clerkCounter.name };
       setActiveTicket(updatedTicket);
-      updateTicket(updatedTicket);
       
+      await updateTicketStatus(nextTicket.id, 'in-progress', clerkCounter.id);
       callTicket(updatedTicket, clerkCounter.name);
+      await refreshTickets();
 
       toast({
         title: "Chamando senha",
@@ -105,7 +119,7 @@ export function ClerkDashboard() {
   };
 
   const handleRecall = () => {
-    if (activeTicket) {
+    if (activeTicket && clerkCounter) {
       callTicket(activeTicket, clerkCounter.name);
       toast({
         title: "Rechamando Senha",
@@ -129,16 +143,12 @@ export function ClerkDashboard() {
     }
   };
 
-  const handleFinalizeService = () => {
+  const handleFinalizeService = async () => {
     if (activeTicket) {
-      const finishedTicket = {
-        ...activeTicket,
-        status: "finished" as const,
-        notes,
-        tags: tags.split(",").map(t => t.trim()).filter(Boolean),
-      };
+      const ticketTags = tags.split(",").map(t => t.trim()).filter(Boolean);
+      await finalizeTicket(activeTicket.id, notes, ticketTags);
       
-      updateTicket(finishedTicket);
+      await refreshTickets();
 
       setActiveTicket(null);
       setFinalizeModalOpen(false);
@@ -146,10 +156,14 @@ export function ClerkDashboard() {
       setTags("");
       toast({
         title: "Atendimento Finalizado",
-        description: `Atendimento da senha ${finishedTicket.number} foi concluído.`,
+        description: `Atendimento da senha ${activeTicket.number} foi concluído.`,
       });
     }
   };
+
+  if (!clerkCounter) {
+    return <div>Carregando...</div>
+  }
 
   return (
     <>

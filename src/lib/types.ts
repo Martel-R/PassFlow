@@ -16,13 +16,17 @@ export type Category = {
   name: string;
 };
 
+export type TicketStatus = "waiting" | "in-progress" | "finished";
+
 export type Ticket = {
   id: string;
   number: string;
   serviceName: string;
+  serviceId?: string; // To link back to the service
   timestamp: Date;
-  status: "waiting" | "in-progress" | "finished";
+  status: TicketStatus;
   counter?: string;
+  counterId?: string;
   clerk?: string;
   notes?: string;
   tags?: string[];
