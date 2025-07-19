@@ -21,10 +21,12 @@ export function middleware(request: NextRequest) {
     const { role } = session;
 
     if (pathname.startsWith('/admin') && role !== 'admin') {
-      return NextResponse.redirect(new URL('/clerk', request.url));
+      // Se não for admin, redireciona para a página de login
+      return NextResponse.redirect(new URL('/login', request.url));
     }
 
-    if (pathname.startsWith('/clerk') && (role !== 'clerk' && role !== 'admin')) {
+    if (pathname.startsWith('/clerk') && role !== 'clerk' && role !== 'admin') {
+       // Se não for atendente nem admin, redireciona para login
        return NextResponse.redirect(new URL('/login', request.url));
     }
     
