@@ -35,7 +35,7 @@ import {
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { useInitializeStore } from "@/lib/store";
+import { useInitializeStore, useSession } from "@/lib/store";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "../ui/button";
 
@@ -83,6 +83,7 @@ function AppHeader({ className, ...props }: React.ComponentProps<"header">) {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const session = useSession();
   useInitializeStore(); 
 
   const isActive = (path: string) => {
@@ -172,18 +173,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
-                isActive={isActive("/admin")}
-                tooltip="Administração"
-              >
-                <Link href="/admin">
-                  <Settings />
-                  <span>Administração</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+            {session?.role === 'admin' && (
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive("/admin")}
+                  tooltip="Administração"
+                >
+                  <Link href="/admin">
+                    <Settings />
+                    <span>Administração</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
