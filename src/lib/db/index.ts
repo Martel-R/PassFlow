@@ -49,6 +49,7 @@ function initDb() {
       counter_id TEXT,
       notes TEXT,
       tags TEXT,
+      service_name TEXT,
       FOREIGN KEY (service_id) REFERENCES services (id),
       FOREIGN KEY (counter_id) REFERENCES counters (id)
     );
@@ -80,7 +81,18 @@ function initDb() {
     }
 }
 
+// Check if 'service_name' column exists and add it if not
+function migrateDb() {
+    try {
+        db.prepare('SELECT service_name FROM tickets LIMIT 1').get();
+    } catch (e) {
+        db.exec('ALTER TABLE tickets ADD COLUMN service_name TEXT');
+    }
+}
+
+
 initDb();
+migrateDb();
 
 // Service Functions
 export async function getServices(): Promise<Service[]> {
@@ -111,14 +123,14 @@ export async function getTickets(): Promise<Ticket[]> {
         SELECT 
             t.id, 
             t.number, 
-            s.name as serviceName, 
+            t.service_name as serviceName, 
             t.timestamp, 
             t.status, 
             c.name as counter, 
             t.notes, 
-            t.tags
+            t.tags,
+            t.service_id as serviceId
         FROM tickets t
-        JOIN services s ON t.service_id = s.id
         LEFT JOIN counters c ON t.counter_id = c.id
         ORDER BY t.timestamp DESC
     `).all() as any[];
@@ -142,25 +154,25 @@ export async function addTicket(service: Service): Promise<Ticket> {
   const nextNumber = countResult.count + 1;
   const ticketNumber = `${prefix}-${String(nextNumber).padStart(3, '0')}`;
 
-  const newTicket: Omit<Ticket, 'id' | 'serviceName'> & {service_id: string} = {
+  const id = `t-${Date.now()}-${Math.random()}`;
+  const timestamp = new Date();
+  const status = 'waiting';
+
+  db.prepare(`
+        INSERT INTO tickets (id, number, service_id, timestamp, status, service_name)
+        VALUES (?, ?, ?, ?, ?, ?)
+    `).run(id, ticketNumber, service.id, timestamp.getTime(), status, service.name);
+    
+  const newTicket: Ticket = {
+    id,
     number: ticketNumber,
-    service_id: service.id,
-    timestamp: new Date(),
+    serviceId: service.id,
+    serviceName: service.name,
+    timestamp: timestamp,
     status: 'waiting',
   };
 
-  const id = `t-${Date.now()}`;
-  db.prepare(`
-        INSERT INTO tickets (id, number, service_id, timestamp, status)
-        VALUES (?, ?, ?, ?, ?)
-    `).run(id, newTicket.number, newTicket.service_id, newTicket.timestamp.getTime(), newTicket.status);
-
-  return { 
-      id, 
-      serviceName: service.name,
-      ...newTicket,
-      timestamp: newTicket.timestamp
-    };
+  return newTicket;
 }
 
 
