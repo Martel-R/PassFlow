@@ -7,8 +7,9 @@ import {
   Service,
   Ticket,
   TicketStatus,
+  User,
 } from '../types';
-import { mockCategories, mockCounters, mockServices } from '../mock-data';
+import { mockCategories, mockCounters, mockServices, mockUsers } from '../mock-data';
 
 const db = new Database('passflow.db');
 
@@ -53,6 +54,16 @@ function initDb() {
       FOREIGN KEY (service_id) REFERENCES services (id),
       FOREIGN KEY (counter_id) REFERENCES counters (id)
     );
+
+     CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      username TEXT NOT NULL UNIQUE,
+      password TEXT NOT NULL,
+      role TEXT NOT NULL,
+      counter_id TEXT,
+      FOREIGN KEY (counter_id) REFERENCES counters (id)
+    );
   `);
 
   const categoryCount = db.prepare('SELECT COUNT(*) as count FROM categories').get() as { count: number };
@@ -79,6 +90,12 @@ function initDb() {
             });
         });
     }
+  
+  const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
+  if (userCount.count === 0) {
+    const insertUser = db.prepare('INSERT INTO users (id, name, username, password, role, counter_id) VALUES (?, ?, ?, ?, ?, ?)');
+    mockUsers.forEach(user => insertUser.run(user.id, user.name, user.username, user.password, user.role, user.counterId));
+  }
 }
 
 // Check if 'service_name' column exists and add it if not
@@ -212,4 +229,19 @@ export async function getCounterById(id: string): Promise<Counter | null> {
      if (!row) return null;
     const assignedCategories = db.prepare('SELECT category_id FROM counter_categories WHERE counter_id = ?').all(id).map((cat: any) => cat.category_id);
     return { ...row, assignedCategories };
+}
+
+// User Functions
+export async function getUsers(): Promise<User[]> {
+    const rows = db.prepare(`
+        SELECT u.id, u.name, u.username, u.role, u.counter_id, c.name as counterName
+        FROM users u
+        LEFT JOIN counters c ON u.counter_id = c.id
+    `).all() as any[];
+    return rows;
+}
+
+export async function getUserByUsername(username: string): Promise<User | null> {
+    const row = db.prepare('SELECT id, name, username, password, role, counter_id FROM users WHERE username = ?').get(username) as any;
+    return row || null;
 }

@@ -4,7 +4,8 @@
 import { create } from 'zustand';
 import { Ticket } from './types';
 import { getTickets } from './db';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import Cookies from 'js-cookie';
 
 // This custom hook ensures that the store is initialized only once
 export function useInitializeStore() {
@@ -17,6 +18,26 @@ export function useInitializeStore() {
         }
     }, [initialize]);
 };
+
+// Hook to get session data from cookie
+export function useSession() {
+    const [session, setSession] = useState<any>(null);
+
+    useEffect(() => {
+        const cookie = Cookies.get('auth-session');
+        if (cookie) {
+            try {
+                setSession(JSON.parse(cookie));
+            } catch (e) {
+                console.error("Failed to parse session cookie", e);
+                setSession(null);
+            }
+        }
+    }, []);
+
+    return session;
+}
+
 
 export type CalledTicket = {
   number: string;

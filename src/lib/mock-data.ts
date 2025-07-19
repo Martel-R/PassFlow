@@ -1,4 +1,4 @@
-import type { Service, Counter, Category, Ticket } from "./types";
+import type { Service, Counter, Category, Ticket, User } from "./types";
 
 export const mockServices: Service[] = [
   { id: "1", name: "Abertura de Conta", category: "general", prefix: "G" },
@@ -26,4 +26,11 @@ export const mockTickets: Ticket[] = [
   { id: "t3", number: "G-002", serviceName: "Pagamento de Contas", timestamp: new Date(Date.now() - 3 * 60000), status: "waiting" },
   { id: "t4", number: "P-002", serviceName: "Caixa Rápido", timestamp: new Date(Date.now() - 2 * 60000), status: "waiting" },
   { id: "t5", number: "G-003", serviceName: "Informações Gerais", timestamp: new Date(Date.now() - 1 * 60000), status: "waiting" },
+];
+
+export const mockUsers: User[] = [
+    { id: "u1", name: "Admin Geral", username: "admin", password: "1234", role: "admin" },
+    { id: "u2", name: "Ana Silva", username: "ana", password: "1234", role: "clerk", counterId: "1" },
+    { id: "u3", name: "Bruno Costa", username: "bruno", password: "1234", role: "clerk", counterId: "2" },
+    { id: "u4", name: "Carla Dias", username: "carla", password: "1234", role: "clerk", counterId: "4" },
 ];

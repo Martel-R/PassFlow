@@ -17,6 +17,7 @@ import {
   Palette,
   RotateCcw,
   ArrowRight,
+  UserCog,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -36,6 +37,12 @@ import { usePassFlowActions } from "@/lib/store";
 
 
 const adminActions = [
+  {
+    title: "Gerenciar Usuários",
+    description: "Criar, editar e remover usuários.",
+    icon: <UserCog className="h-6 w-6" />,
+    href: "/admin/users",
+  },
   {
     title: "Gerenciar Serviços",
     description: "Criar, editar e remover tipos de serviço.",

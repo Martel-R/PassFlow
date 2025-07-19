@@ -6,12 +6,19 @@ export function middleware(request: NextRequest) {
   const cookie = request.cookies.get('auth-session');
   const { pathname } = request.nextUrl;
 
-  const protectedRoutes = ['/admin', '/clerk'];
-  const isAdminRoute = pathname.startsWith('/admin');
-  const isClerkRoute = pathname.startsWith('/clerk');
+  const protectedAdminRoutes = ['/admin'];
+  const protectedClerkRoutes = ['/clerk'];
+  
+  const isPublicRoute = ['/', '/get-ticket', '/display'].includes(pathname);
+  if (isPublicRoute) {
+    return NextResponse.next();
+  }
+
+  const isAdminRoute = protectedAdminRoutes.some(p => pathname.startsWith(p));
+  const isClerkRoute = protectedClerkRoutes.some(p => pathname.startsWith(p));
 
   // If trying to access a protected route without a session cookie
-  if (!cookie && protectedRoutes.some(p => pathname.startsWith(p))) {
+  if (!cookie && (isAdminRoute || isClerkRoute)) {
     const url = request.nextUrl.clone();
     url.pathname = '/';
     return NextResponse.redirect(url);
@@ -26,12 +33,11 @@ export function middleware(request: NextRequest) {
       // If user is not admin and tries to access admin routes
       if (isAdminRoute && role !== 'admin') {
          const url = request.nextUrl.clone();
-         url.pathname = '/clerk'; // Redirect to their own dashboard
+         url.pathname = '/clerk'; // Redirect clerk to their own dashboard
          return NextResponse.redirect(url);
       }
       
-      // Clerk trying to access something other than clerk pages
-      // This is a bit broad, but prevents access to /admin
+      // If user is not clerk or admin and tries to access clerk route
       if (isClerkRoute && role !== 'clerk' && role !== 'admin') {
          const url = request.nextUrl.clone();
          url.pathname = '/'; // Redirect to login

@@ -43,10 +43,11 @@ import { Ticket, Counter } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useTickets, usePassFlowActions } from "@/lib/store";
+import { useTickets, usePassFlowActions, useSession } from "@/lib/store";
 
 export function ClerkDashboard() {
   const tickets = useTickets();
+  const session = useSession();
   const { callTicket, refreshTickets } = usePassFlowActions();
   const [activeTicket, setActiveTicket] = useState<Ticket | null>(null);
   const [isFinalizeModalOpen, setFinalizeModalOpen] = useState(false);
@@ -56,14 +57,20 @@ export function ClerkDashboard() {
   const { toast } = useToast();
   
   useEffect(() => {
-    // In a real app, the clerk's counter would be determined by login.
-    // Here, we'll just assign them to the first one.
     const fetchCounter = async () => {
-        const counter = await getCounterById("1");
+      if (session?.counterId) {
+        const counter = await getCounterById(session.counterId);
         setClerkCounter(counter);
+      } else if (session?.role === 'admin') {
+         // Admin can operate as a generic counter for testing
+         const counter = await getCounterById("1");
+         setClerkCounter(counter);
+      }
     };
-    fetchCounter();
-  }, []);
+    if (session) {
+      fetchCounter();
+    }
+  }, [session]);
 
   const waitingTickets = useMemo(() => tickets.filter(t => t.status === 'waiting').sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime()), [tickets]);
 
@@ -162,7 +169,7 @@ export function ClerkDashboard() {
   };
 
   if (!clerkCounter) {
-    return <div>Carregando...</div>
+    return <div>Carregando informações do atendente...</div>
   }
 
   return (
@@ -171,7 +178,7 @@ export function ClerkDashboard() {
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Painel do Atendente</h2>
           <p className="text-muted-foreground">
-            Gerencie a fila de atendimento - {clerkCounter.name}.
+            {session?.name || 'Atendente'} - {clerkCounter.name}.
           </p>
         </div>
         <div className="flex items-center space-x-2">

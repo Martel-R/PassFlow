@@ -31,3 +31,13 @@ export type Ticket = {
   notes?: string;
   tags?: string[];
 };
+
+export type User = {
+    id: string;
+    name: string;
+    username: string;
+    password?: string; // Not ideal for production, but okay for a prototype
+    role: 'admin' | 'clerk';
+    counterId?: string;
+    counterName?: string;
+};

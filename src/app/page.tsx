@@ -14,13 +14,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Logo } from "@/components/layout/logo";
 import { Separator } from "@/components/ui/separator";
@@ -30,38 +23,31 @@ import Link from "next/link";
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [role, setRole] = useState("clerk");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (password !== "1234") {
-        toast({
-            title: "Erro de autenticação",
-            description: "Senha incorreta. A senha é '1234'.",
-            variant: "destructive",
-        });
-        return;
-    }
-
     const res = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role }),
+        body: JSON.stringify({ username, password }),
     });
+
+    const data = await res.json();
 
     if (res.ok) {
         toast({
             title: "Login bem-sucedido!",
-            description: `Redirecionando para o painel de ${role === 'admin' ? 'administrador' : 'atendente'}.`,
+            description: `Redirecionando para o painel de ${data.role === 'admin' ? 'administrador' : 'atendente'}.`,
         });
-        router.push(role === "admin" ? "/admin" : "/clerk");
+        router.push(data.role === "admin" ? "/admin" : "/clerk");
         router.refresh(); // Important to re-evaluate middleware
     } else {
          toast({
             title: "Erro de login",
-            description: "Ocorreu um erro ao tentar fazer login.",
+            description: data.message || "Ocorreu um erro ao tentar fazer login.",
             variant: "destructive",
         });
     }
@@ -82,16 +68,14 @@ export default function LoginPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="role">Perfil</Label>
-              <Select onValueChange={setRole} defaultValue={role}>
-                <SelectTrigger id="role">
-                  <SelectValue placeholder="Selecione o perfil" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="clerk">Atendente</SelectItem>
-                  <SelectItem value="admin">Administrador</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="username">Usuário</Label>
+              <Input
+                id="username"
+                placeholder="Digite seu usuário"
+                required
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Senha</Label>
