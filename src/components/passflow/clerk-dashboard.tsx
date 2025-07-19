@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from "react";
@@ -37,14 +38,16 @@ import {
   Clock,
   Tag
 } from "lucide-react";
-import { mockTickets, mockCounters } from "@/lib/mock-data";
+import { mockCounters } from "@/lib/mock-data";
 import { Ticket } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useTickets, usePassFlowActions } from "@/lib/store";
 
 export function ClerkDashboard() {
-  const [tickets, setTickets] = useState<Ticket[]>(mockTickets);
+  const tickets = useTickets();
+  const { setTickets, callTicket } = usePassFlowActions();
   const [activeTicket, setActiveTicket] = useState<Ticket | null>(null);
   const [isFinalizeModalOpen, setFinalizeModalOpen] = useState(false);
   const [notes, setNotes] = useState("");
@@ -70,8 +73,14 @@ export function ClerkDashboard() {
     });
 
     if (nextTicket) {
-      setActiveTicket({ ...nextTicket, status: 'in-progress' });
-      setTickets(prev => prev.map(t => t.id === nextTicket.id ? { ...t, status: 'in-progress' } : t));
+      const updatedTicket = { ...nextTicket, status: 'in-progress' as const };
+      setActiveTicket(updatedTicket);
+      
+      const newTickets = tickets.map(t => t.id === nextTicket.id ? updatedTicket : t);
+      setTickets(newTickets);
+      
+      callTicket(updatedTicket, clerkCounter.name);
+
       toast({
         title: "Chamando senha",
         description: `Senha ${nextTicket.number} chamada para o ${clerkCounter.name}.`,
@@ -86,6 +95,7 @@ export function ClerkDashboard() {
 
   const handleRecall = () => {
     if (activeTicket) {
+      callTicket(activeTicket, clerkCounter.name);
       toast({
         title: "Rechamando Senha",
         description: `Senha ${activeTicket.number} rechamada para o ${clerkCounter.name}.`,
@@ -116,9 +126,10 @@ export function ClerkDashboard() {
         notes,
         tags: tags.split(",").map(t => t.trim()).filter(Boolean),
       };
-      setTickets(prev =>
-        prev.map(t => (t.id === activeTicket.id ? finishedTicket : t))
-      );
+      
+      const newTickets = tickets.map(t => (t.id === activeTicket.id ? finishedTicket : t));
+      setTickets(newTickets);
+
       setActiveTicket(null);
       setFinalizeModalOpen(false);
       setNotes("");

@@ -6,7 +6,7 @@ export function middleware(request: NextRequest) {
   const cookie = request.cookies.get('auth-session');
   const { pathname } = request.nextUrl;
 
-  const publicRoutes = ['/login', '/', '/display'];
+  const publicRoutes = ['/login', '/', '/display', '/api/logout'];
 
   if (publicRoutes.includes(pathname) || pathname.startsWith('/api/login')) {
     return NextResponse.next();
@@ -21,12 +21,12 @@ export function middleware(request: NextRequest) {
     const { role } = session;
 
     if (pathname.startsWith('/admin') && role !== 'admin') {
-      // Se não for admin, redireciona para a página de login
+      // If not admin, redirect to login page
       return NextResponse.redirect(new URL('/login', request.url));
     }
 
-    if (pathname.startsWith('/clerk') && role !== 'clerk' && role !== 'admin') {
-       // Se não for atendente nem admin, redireciona para login
+    if (pathname.startsWith('/clerk') && !['clerk', 'admin'].includes(role)) {
+       // If not clerk or admin, redirect to login
        return NextResponse.redirect(new URL('/login', request.url));
     }
     
@@ -47,7 +47,8 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
+     * - notification.mp3 (sound file)
      */
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon.ico|notification.mp3).*)',
   ],
 }

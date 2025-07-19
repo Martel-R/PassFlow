@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -7,51 +8,24 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { mockCounters, mockTickets } from "@/lib/mock-data";
-import { Ticket } from "@/lib/types";
+import { useCalledTicket, useCallHistory, CalledTicket } from "@/lib/store";
 import { Volume2, Clock } from "lucide-react";
 import Image from "next/image";
 
-type CalledTicket = {
-  number: string;
-  counter: string;
-};
-
 export function DisplayScreen() {
-  const [calledTicket, setCalledTicket] = useState<CalledTicket | null>(null);
-  const [history, setHistory] = useState<CalledTicket[]>([]);
-  const [key, setKey] = useState(0);
+  const calledTicket = useCalledTicket();
+  const callHistory = useCallHistory();
+  const [animationKey, setAnimationKey] = useState(0);
 
   useEffect(() => {
-    const availableTickets = mockTickets.filter(
-      (t) => !history.some((h) => h.number === t.number)
-    );
-
-    if (availableTickets.length === 0) {
-      // All mock tickets have been called, do nothing.
-      return;
+    if (calledTicket) {
+      setAnimationKey(prev => prev + 1); // Increment key to trigger re-animation
+      
+      // Optional: Play a sound
+      const audio = new Audio('/notification.mp3'); // Ensure you have this audio file in /public
+      audio.play().catch(e => console.error("Error playing sound:", e));
     }
-
-    const interval = setInterval(() => {
-      // Select a random ticket and counter for simulation
-      const randomTicketIndex = Math.floor(Math.random() * availableTickets.length);
-      const randomTicket = availableTickets[randomTicketIndex];
-
-      const randomCounterIndex = Math.floor(Math.random() * mockCounters.length);
-      const randomCounter = mockCounters[randomCounterIndex];
-
-      const newCall: CalledTicket = {
-        number: randomTicket.number,
-        counter: randomCounter.name,
-      };
-
-      setCalledTicket(newCall);
-      setHistory((prev) => [newCall, ...prev].slice(0, 5));
-      setKey(prev => prev + 1); // Reset animation
-    }, 8000); // Call a new ticket every 8 seconds
-
-    return () => clearInterval(interval);
-  }, [history]);
+  }, [calledTicket?.timestamp]); // Depend on timestamp to detect new calls
 
   return (
     <div className="flex h-full w-full">
@@ -60,7 +34,7 @@ export function DisplayScreen() {
           <h1 className="text-5xl font-bold text-primary">PassFlow</h1>
         </header>
         <main className="flex-1 flex flex-col items-center justify-center">
-          <Card key={key} className="w-full max-w-4xl shadow-2xl flash">
+          <Card key={animationKey} className="w-full max-w-4xl shadow-2xl flash">
             <CardContent className="p-10 text-center">
               <p className="text-2xl text-muted-foreground">Senha</p>
               <p className="text-9xl font-extrabold text-primary my-4">
@@ -83,7 +57,7 @@ export function DisplayScreen() {
           </CardHeader>
           <CardContent>
             <ul className="space-y-4">
-              {history.slice(1).map((call, index) => (
+              {callHistory.slice(1).map((call, index) => (
                 <li key={index} className="flex justify-between items-center text-xl p-3 bg-secondary rounded-lg">
                   <span className="font-bold">{call.number}</span>
                   <span className="text-muted-foreground">{call.counter}</span>
