@@ -29,28 +29,53 @@ import {
   Settings,
   MonitorPlay,
   Building,
+  Ticket,
+  LogOut,
 } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useInitializeStore } from "@/lib/store";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "../ui/button";
 
 
 function AppHeader({ className, ...props }: React.ComponentProps<"header">) {
   const { isMobile, open, setOpen, openMobile, setOpenMobile } = useSidebar();
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const handleLogout = async () => {
+    const res = await fetch('/api/logout', { method: 'POST' });
+    if (res.ok) {
+      toast({
+        title: "Logout realizado",
+        description: "Você foi desconectado com sucesso.",
+      });
+      router.push('/');
+      router.refresh();
+    }
+  };
 
   const showTrigger = (isMobile && !openMobile) || (!isMobile && !open);
 
   return (
     <header
       className={cn(
-        "sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6",
+        "sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 justify-between",
         className
       )}
       {...props}
     >
-      {showTrigger && <SidebarTrigger />}
-      {/* You can add other header elements here, like a search bar or user menu */}
+      <div>
+        {showTrigger && <SidebarTrigger />}
+      </div>
+      <div>
+        <Button variant="ghost" size="sm" onClick={handleLogout}>
+          <LogOut className="mr-2" />
+          Sair
+        </Button>
+      </div>
     </header>
   );
 }
@@ -58,15 +83,21 @@ function AppHeader({ className, ...props }: React.ComponentProps<"header">) {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  useInitializeStore(); // Initialize the store with mock data
+  useInitializeStore(); 
 
   const isActive = (path: string) => {
-    // Exact match for root, startsWith for others
-    if (path === '/') return pathname === path;
     return pathname.startsWith(path);
   };
   
+  const noShellRoutes = ["/"];
+  const showShell = !noShellRoutes.includes(pathname);
+
+  if (!showShell) {
+    return <>{children}</>;
+  }
+  
   const showSidebar = !["/display"].includes(pathname);
+
 
   if (!showSidebar) {
     return <>{children}</>;
@@ -108,11 +139,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
-                isActive={isActive("/")}
+                isActive={isActive("/get-ticket")}
                 tooltip="Seleção de Senha"
               >
-                <Link href="/">
-                  <Home />
+                <Link href="/get-ticket">
+                  <Ticket />
                   <span>Seleção de Senha</span>
                 </Link>
               </SidebarMenuButton>
