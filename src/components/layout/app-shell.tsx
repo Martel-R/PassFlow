@@ -13,6 +13,7 @@ import {
   SidebarFooter,
   SidebarTrigger,
   SidebarInset,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import {
   Select,
@@ -31,6 +32,28 @@ import {
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
+
+
+function AppHeader({ className, ...props }: React.ComponentProps<"header">) {
+  const { isMobile, open, setOpen, openMobile, setOpenMobile } = useSidebar();
+
+  const showTrigger = (isMobile && !openMobile) || (!isMobile && !open);
+
+  return (
+    <header
+      className={cn(
+        "sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6",
+        className
+      )}
+      {...props}
+    >
+      {showTrigger && <SidebarTrigger />}
+      {/* You can add other header elements here, like a search bar or user menu */}
+    </header>
+  );
+}
+
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -53,7 +76,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <SidebarHeader>
           <div className="flex items-center justify-between">
             <Logo />
-            <SidebarTrigger />
+             {/* The trigger is now in AppHeader, but we keep one here for desktop view */}
+            <div className="hidden md:block">
+                <SidebarTrigger />
+            </div>
           </div>
           <Select defaultValue="unidade1">
             <SelectTrigger className="w-full mt-2">
@@ -130,7 +156,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <SidebarFooter>
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset>{children}</SidebarInset>
+      <SidebarInset>
+        <AppHeader />
+        <div className="flex-1 overflow-auto">{children}</div>
+      </SidebarInset>
     </SidebarProvider>
   );
 }
