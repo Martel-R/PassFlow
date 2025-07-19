@@ -96,7 +96,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
   
-  const showSidebar = !["/display"].includes(pathname);
+  const showSidebar = !["/display", "/get-ticket"].includes(pathname);
 
 
   if (!showSidebar) {
