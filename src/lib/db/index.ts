@@ -10,7 +10,7 @@ import {
 } from '../types';
 import { mockCategories, mockCounters, mockServices } from '../mock-data';
 
-const db = new Database('passflow.db', { verbose: console.log });
+const db = new Database('passflow.db');
 
 function initDb() {
   db.exec(`
@@ -131,8 +131,14 @@ export async function getTickets(): Promise<Ticket[]> {
 }
 
 export async function addTicket(service: Service): Promise<Ticket> {
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
   const prefix = service.prefix;
-  const countResult = db.prepare('SELECT COUNT(*) as count FROM tickets WHERE number LIKE ?').get(`${prefix}-%`) as { count: number };
+  const countResult = db.prepare(
+    'SELECT COUNT(*) as count FROM tickets WHERE number LIKE ? AND timestamp >= ?'
+  ).get(`${prefix}-%`, todayStart.getTime()) as { count: number };
+  
   const nextNumber = countResult.count + 1;
   const ticketNumber = `${prefix}-${String(nextNumber).padStart(3, '0')}`;
 
@@ -173,6 +179,16 @@ export async function finalizeTicket(id: string, notes: string, tags: string[]):
         WHERE id = ?
     `).run(notes, tags.join(','), id);
 }
+
+export async function resetTickets(): Promise<{ count: number }> {
+    const result = db.prepare(`
+        UPDATE tickets
+        SET status = 'cancelled'
+        WHERE status = 'waiting' OR status = 'in-progress'
+    `).run();
+    return { count: result.changes };
+}
+
 
 export async function getServiceById(id: string): Promise<Service | null> {
     const row = db.prepare('SELECT id, name, prefix, category_id as category FROM services WHERE id = ?').get(id) as any;

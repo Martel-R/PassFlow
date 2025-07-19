@@ -16,7 +16,7 @@ export type Category = {
   name: string;
 };
 
-export type TicketStatus = "waiting" | "in-progress" | "finished";
+export type TicketStatus = "waiting" | "in-progress" | "finished" | "cancelled";
 
 export type Ticket = {
   id: string;

@@ -1,3 +1,6 @@
+
+"use client";
+
 import {
   Card,
   CardContent,
@@ -26,7 +29,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+} from "@/components/ui/alert-dialog";
+import { resetTickets } from "@/lib/db";
+import { useToast } from "@/hooks/use-toast";
+import { usePassFlowActions } from "@/lib/store";
 
 
 const adminActions = [
@@ -51,6 +57,26 @@ const adminActions = [
 ];
 
 export default function AdminPage() {
+  const { toast } = useToast();
+  const { refreshTickets } = usePassFlowActions();
+
+  const handleResetTickets = async () => {
+    try {
+      const { count } = await resetTickets();
+      await refreshTickets();
+      toast({
+        title: "Senhas Zeradas com Sucesso!",
+        description: `${count} senha(s) em espera foram canceladas. A contagem para novas senhas foi reiniciada.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Erro ao zerar senhas",
+        description: "Ocorreu um problema ao tentar zerar as senhas.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="flex-1 space-y-4 p-4 sm:p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
@@ -99,7 +125,7 @@ export default function AdminPage() {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground mb-4">
-              Esta ação removerá todas as senhas da fila. Use com cuidado.
+              Esta ação cancela todas as senhas em espera. Use com cuidado.
             </p>
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -109,12 +135,12 @@ export default function AdminPage() {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Você tem certeza absoluta?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Esta ação não pode ser desfeita. Isso irá zerar permanentemente a contagem de senhas e limpar todas as filas.
+                    Esta ação não pode ser desfeita. Isso irá marcar todas as senhas em espera e em andamento como 'canceladas'.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction className="bg-destructive hover:bg-destructive/90">Sim, zerar senhas</AlertDialogAction>
+                  <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={handleResetTickets}>Sim, zerar senhas</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
