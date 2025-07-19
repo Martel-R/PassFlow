@@ -2,7 +2,6 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 import {
   SidebarProvider,
   Sidebar,
@@ -28,31 +27,21 @@ import {
   Users,
   Settings,
   MonitorPlay,
-  LogOut,
   Building,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Button } from "../ui/button";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
 
   const isActive = (path: string) => {
     // Exact match for root, startsWith for others
-    return path === "/" ? pathname === path : pathname.startsWith(path);
+    if (path === '/') return pathname === path;
+    return pathname.startsWith(path);
   };
   
-  const handleLogout = async () => {
-    const res = await fetch('/api/logout', { method: 'POST' });
-    if (res.ok) {
-        router.push('/login');
-        router.refresh(); // Clears client-side cache
-    }
-  };
-
-  const showSidebar = !["/login", "/display"].includes(pathname);
+  const showSidebar = !["/display"].includes(pathname);
 
   if (!showSidebar) {
     return <>{children}</>;
@@ -139,10 +128,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
-          <Button variant="ghost" className="w-full justify-start gap-2" onClick={handleLogout}>
-            <LogOut className="h-4 w-4" />
-            <span>Sair</span>
-          </Button>
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>{children}</SidebarInset>
