@@ -6,6 +6,18 @@ import { Ticket } from './types';
 import { mockTickets } from './mock-data';
 import { useEffect, useRef } from 'react';
 
+// This custom hook ensures that the store is initialized only once
+export function useInitializeStore() {
+    const { initialize } = usePassFlowActions();
+    const initialized = useRef(false);
+    useEffect(() => {
+        if (!initialized.current) {
+            initialize();
+            initialized.current = true;
+        }
+    }, [initialize]);
+};
+
 export type CalledTicket = {
   number: string;
   counter: string;
@@ -25,7 +37,7 @@ type PassFlowState = {
   };
 };
 
-export const usePassFlowStore = create<PassFlowState>((set, get) => ({
+const usePassFlowStore = create<PassFlowState>((set, get) => ({
   hydrated: false,
   tickets: [],
   calledTicket: null,
@@ -61,15 +73,3 @@ export const useTickets = () => usePassFlowStore((state) => state.tickets);
 export const useCalledTicket = () => usePassFlowStore((state) => state.calledTicket);
 export const useCallHistory = () => usePassFlowStore((state) => state.callHistory);
 export const usePassFlowActions = () => usePassFlowStore((state) => state.actions);
-
-// This custom hook ensures that the store is initialized only once
-export const useInitializeStore = () => {
-    const { initialize } = usePassFlowActions();
-    const initialized = useRef(false);
-    useEffect(() => {
-        if (!initialized.current) {
-            initialize();
-            initialized.current = true;
-        }
-    }, [initialize]);
-};
