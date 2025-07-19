@@ -33,6 +33,7 @@ import {
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { useInitializeStore } from "@/lib/store";
 
 
 function AppHeader({ className, ...props }: React.ComponentProps<"header">) {
@@ -57,6 +58,7 @@ function AppHeader({ className, ...props }: React.ComponentProps<"header">) {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  useInitializeStore(); // Initialize the store with mock data
 
   const isActive = (path: string) => {
     // Exact match for root, startsWith for others
