@@ -57,7 +57,7 @@ export default function AdminPage() {
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Administração</h2>
           <p className="text-muted-foreground">
-            Configure e gerencie o sistema PassFlow.
+            Configure e gerencie o sistema.
           </p>
         </div>
       </div>

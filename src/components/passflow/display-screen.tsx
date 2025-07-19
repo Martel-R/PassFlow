@@ -11,6 +11,7 @@ import {
 import { useCalledTicket, useCallHistory } from "@/lib/store";
 import { Volume2, Clock } from "lucide-react";
 import Image from "next/image";
+import { Logo } from "../layout/logo";
 
 export function DisplayScreen() {
   const calledTicket = useCalledTicket();
@@ -30,7 +31,9 @@ export function DisplayScreen() {
     <div className="flex flex-col lg:flex-row h-full w-full">
       <div className="flex flex-col flex-1 p-4 md:p-8">
         <header className="mb-4 md:mb-8">
-          <h1 className="text-3xl md:text-5xl font-bold text-primary">PassFlow</h1>
+          <h1 className="text-3xl md:text-5xl font-bold text-primary">
+            <Logo />
+          </h1>
         </header>
         <main className="flex-1 flex flex-col items-center justify-center">
           <Card key={animationKey} className="w-full max-w-4xl shadow-2xl flash">

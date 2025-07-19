@@ -69,15 +69,13 @@ export function TicketSelection() {
 
   return (
     <>
-      <div className="flex items-center justify-between space-y-2">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Bem-vindo ao PassFlow!</h2>
-          <p className="text-muted-foreground">
-            Selecione o serviço desejado para retirar sua senha.
-          </p>
-        </div>
+      <div className="text-center mb-8">
+        <h2 className="text-3xl font-bold tracking-tight">Bem-vindo!</h2>
+        <p className="text-muted-foreground">
+          Selecione o serviço desejado para retirar sua senha.
+        </p>
       </div>
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid w-full max-w-4xl gap-6 md:grid-cols-2 lg:grid-cols-3">
         {mockServices.map((service) => (
           <Card
             key={service.id}

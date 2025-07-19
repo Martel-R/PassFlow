@@ -4,7 +4,7 @@ import { AppShell } from '@/components/layout/app-shell';
 import { Toaster } from "@/components/ui/toaster"
 
 export const metadata: Metadata = {
-  title: 'PassFlow',
+  title: 'Nome da Organização',
   description: 'Sistema de gestão de senhas e atendimento.',
 };
 
