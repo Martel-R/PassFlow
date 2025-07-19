@@ -38,7 +38,7 @@ import {
   Clock,
   Tag
 } from "lucide-react";
-import { mockCounters } from "@/lib/mock-data";
+import { mockCounters, mockServices } from "@/lib/mock-data";
 import { Ticket } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
@@ -47,7 +47,7 @@ import { useTickets, usePassFlowActions } from "@/lib/store";
 
 export function ClerkDashboard() {
   const tickets = useTickets();
-  const { setTickets, callTicket } = usePassFlowActions();
+  const { callTicket, addTicket, updateTicket } = usePassFlowActions();
   const [activeTicket, setActiveTicket] = useState<Ticket | null>(null);
   const [isFinalizeModalOpen, setFinalizeModalOpen] = useState(false);
   const [notes, setNotes] = useState("");
@@ -67,17 +67,28 @@ export function ClerkDashboard() {
         return;
     }
 
-    const nextTicket = waitingTickets.find(ticket => {
-        const serviceCategory = ticket.serviceName.toLowerCase().includes('prioritário') ? 'priority' : 'general';
-        return clerkCounter.assignedCategories.includes(serviceCategory);
-    });
+    const serviceMap = new Map(mockServices.map(s => [s.name, s]));
+    const getCategoryForTicket = (ticket: Ticket) => {
+        return serviceMap.get(ticket.serviceName)?.category || 'general';
+    };
+
+    const nextTicket = [...waitingTickets]
+        .sort((a,b) => {
+             const categoryA = getCategoryForTicket(a);
+             const categoryB = getCategoryForTicket(b);
+             if (categoryA === 'priority' && categoryB !== 'priority') return -1;
+             if (categoryA !== 'priority' && categoryB === 'priority') return 1;
+             return a.timestamp.getTime() - b.timestamp.getTime();
+        })
+        .find(ticket => {
+            const serviceCategory = getCategoryForTicket(ticket);
+            return clerkCounter.assignedCategories.includes(serviceCategory);
+        });
 
     if (nextTicket) {
-      const updatedTicket = { ...nextTicket, status: 'in-progress' as const };
+      const updatedTicket = { ...nextTicket, status: 'in-progress' as const, counter: clerkCounter.name };
       setActiveTicket(updatedTicket);
-      
-      const newTickets = tickets.map(t => t.id === nextTicket.id ? updatedTicket : t);
-      setTickets(newTickets);
+      updateTicket(updatedTicket);
       
       callTicket(updatedTicket, clerkCounter.name);
 
@@ -127,8 +138,7 @@ export function ClerkDashboard() {
         tags: tags.split(",").map(t => t.trim()).filter(Boolean),
       };
       
-      const newTickets = tickets.map(t => (t.id === activeTicket.id ? finishedTicket : t));
-      setTickets(newTickets);
+      updateTicket(finishedTicket);
 
       setActiveTicket(null);
       setFinalizeModalOpen(false);
@@ -166,32 +176,34 @@ export function ClerkDashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent className="pl-2">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Senha</TableHead>
-                  <TableHead>Serviço</TableHead>
-                  <TableHead>Tempo de Espera</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {waitingTickets.length > 0 ? (
-                  waitingTickets.map((ticket) => (
-                    <TableRow key={ticket.id}>
-                      <TableCell className="font-medium">{ticket.number}</TableCell>
-                      <TableCell>{ticket.serviceName}</TableCell>
-                      <TableCell>{formatDistanceToNow(ticket.timestamp, { addSuffix: true, locale: ptBR })}</TableCell>
+             <div className="max-h-96 overflow-y-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Senha</TableHead>
+                      <TableHead>Serviço</TableHead>
+                      <TableHead>Tempo de Espera</TableHead>
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={3} className="text-center">
-                      Nenhuma senha na fila.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {waitingTickets.length > 0 ? (
+                      waitingTickets.map((ticket) => (
+                        <TableRow key={ticket.id}>
+                          <TableCell className="font-medium">{ticket.number}</TableCell>
+                          <TableCell>{ticket.serviceName}</TableCell>
+                          <TableCell>{formatDistanceToNow(ticket.timestamp, { addSuffix: true, locale: ptBR })}</TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-center h-24">
+                          Nenhuma senha na fila.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+             </div>
           </CardContent>
         </Card>
         <Card className="col-span-4 md:col-span-3">

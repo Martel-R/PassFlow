@@ -3,7 +3,7 @@
 
 import { create } from 'zustand';
 import { Ticket } from './types';
-import { mockTickets, mockCounters } from './mock-data';
+import { mockTickets } from './mock-data';
 
 export type CalledTicket = {
   number: string;
@@ -16,17 +16,21 @@ type PassFlowState = {
   calledTicket: CalledTicket | null;
   callHistory: CalledTicket[];
   actions: {
-    setTickets: (tickets: Ticket[]) => void;
+    addTicket: (ticket: Ticket) => void;
+    updateTicket: (ticket: Ticket) => void;
     callTicket: (ticket: Ticket, counterName: string) => void;
   };
 };
 
-export const usePassFlowStore = create<PassFlowState>((set, get) => ({
+export const usePassFlowStore = create<PassFlowState>((set) => ({
   tickets: mockTickets,
   calledTicket: null,
   callHistory: [],
   actions: {
-    setTickets: (tickets) => set({ tickets }),
+    addTicket: (ticket) => set((state) => ({ tickets: [...state.tickets, ticket] })),
+    updateTicket: (ticket) => set((state) => ({
+      tickets: state.tickets.map(t => t.id === ticket.id ? ticket : t)
+    })),
     callTicket: (ticket, counterName) => {
       const newCall: CalledTicket = {
         number: ticket.number,
@@ -35,7 +39,10 @@ export const usePassFlowStore = create<PassFlowState>((set, get) => ({
       };
       set((state) => ({
         calledTicket: newCall,
-        callHistory: [newCall, ...state.callHistory].slice(0, 5),
+        // Add to history only if it's a new call or a different ticket
+        callHistory: (state.calledTicket?.number !== newCall.number) 
+            ? [newCall, ...state.callHistory].slice(0, 10) 
+            : state.callHistory,
       }));
     },
   },

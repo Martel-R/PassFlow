@@ -18,27 +18,43 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { mockServices } from "@/lib/mock-data";
-import { Ticket, ArrowRight, UserCheck, Briefcase } from "lucide-react";
+import { Ticket as TicketIcon, ArrowRight, UserCheck, Briefcase } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { usePassFlowActions, useTickets } from "@/lib/store";
+import type { Service, Ticket } from "@/lib/types";
 
-const serviceIcons = {
+const serviceIcons: Record<Service['category'], React.ReactNode> = {
   priority: <UserCheck className="h-8 w-8 text-primary" />,
   general: <Briefcase className="h-8 w-8 text-primary" />,
 };
 
 export function TicketSelection() {
-  const [selectedService, setSelectedService] = useState<
-    typeof mockServices[0] | null
-  >(null);
-  const [generatedTicket, setGeneratedTicket] = useState<string | null>(null);
+  const [selectedService, setSelectedService] = useState<Service | null>(null);
+  const [generatedTicket, setGeneratedTicket] = useState<Ticket | null>(null);
   const { toast } = useToast();
+  const { addTicket } = usePassFlowActions();
+  const tickets = useTickets();
 
-  const handleServiceClick = (service: typeof mockServices[0]) => {
+  const getNextTicketNumber = (prefix: string) => {
+    const relevantTickets = tickets.filter(t => t.number.startsWith(prefix));
+    const nextNumber = relevantTickets.length + 1;
+    return `${prefix}-${String(nextNumber).padStart(3, "0")}`;
+  }
+
+  const handleServiceClick = (service: Service) => {
+    const newTicketNumber = getNextTicketNumber(service.prefix);
+
+    const newTicket: Ticket = {
+      id: `t-${Date.now()}`,
+      number: newTicketNumber,
+      serviceName: service.name,
+      timestamp: new Date(),
+      status: "waiting",
+    };
+    
+    addTicket(newTicket);
     setSelectedService(service);
-    const newTicketNumber = `${service.prefix}-${String(
-      Math.floor(Math.random() * 900) + 100
-    ).padStart(3, "0")}`;
-    setGeneratedTicket(newTicketNumber);
+    setGeneratedTicket(newTicket);
 
     toast({
       title: "Senha gerada com sucesso!",
@@ -90,7 +106,7 @@ export function TicketSelection() {
         <DialogContent className="sm:max-w-md text-center">
           <DialogHeader>
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mb-4">
-              <Ticket className="h-10 w-10 text-primary" />
+              <TicketIcon className="h-10 w-10 text-primary" />
             </div>
             <DialogTitle className="text-2xl">Senha Gerada!</DialogTitle>
             <DialogDescription>
@@ -98,7 +114,7 @@ export function TicketSelection() {
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <p className="text-5xl font-bold text-primary">{generatedTicket}</p>
+            <p className="text-5xl font-bold text-primary">{generatedTicket?.number}</p>
             <p className="text-muted-foreground mt-2">{selectedService?.name}</p>
           </div>
           <DialogFooter className="sm:justify-center">

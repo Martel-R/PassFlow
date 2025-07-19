@@ -19,12 +19,12 @@ export function DisplayScreen() {
 
   useEffect(() => {
     if (calledTicket) {
-      setAnimationKey(prev => prev + 1); // Increment key to trigger re-animation
+      setAnimationKey(prev => prev + 1);
       
       const audio = new Audio('/notification.mp3'); 
       audio.play().catch(e => console.error("Error playing sound:", e));
     }
-  }, [calledTicket?.timestamp]); // Depend on timestamp to detect new calls
+  }, [calledTicket]); 
 
   return (
     <div className="flex flex-col lg:flex-row h-full w-full">
@@ -57,7 +57,7 @@ export function DisplayScreen() {
             </CardHeader>
             <CardContent>
               <ul className="space-y-2 md:space-y-4">
-                {callHistory.slice(1, 5).map((call, index) => (
+                {callHistory.slice(0, 5).map((call, index) => (
                   <li key={index} className="flex justify-between items-center text-lg md:text-xl p-2 md:p-3 bg-secondary rounded-lg">
                     <span className="font-bold">{call.number}</span>
                     <span className="text-muted-foreground">{call.counter}</span>
