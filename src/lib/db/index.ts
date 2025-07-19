@@ -1,3 +1,4 @@
+
 'use server';
 
 import Database from 'better-sqlite3';
@@ -64,6 +65,11 @@ function initDb() {
       counter_id TEXT,
       FOREIGN KEY (counter_id) REFERENCES counters (id)
     );
+
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT
+    );
   `);
 
   const categoryCount = db.prepare('SELECT COUNT(*) as count FROM categories').get() as { count: number };
@@ -96,6 +102,11 @@ function initDb() {
     const insertUser = db.prepare('INSERT INTO users (id, name, username, password, role, counter_id) VALUES (?, ?, ?, ?, ?, ?)');
     mockUsers.forEach(user => insertUser.run(user.id, user.name, user.username, user.password, user.role, user.counterId));
   }
+
+  const settingsCount = db.prepare('SELECT COUNT(*) as count FROM settings WHERE key = ?').get('organizationName') as { count: number };
+  if (settingsCount.count === 0) {
+      db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('organizationName', 'Nome da Organização');
+  }
 }
 
 // Check if 'service_name' column exists and add it if not
@@ -110,6 +121,16 @@ function migrateDb() {
 
 initDb();
 migrateDb();
+
+// Settings Functions
+export async function getSetting(key: string): Promise<string | null> {
+    const row = db.prepare('SELECT value FROM settings WHERE key = ?').get(key) as { value: string } | undefined;
+    return row ? row.value : null;
+}
+
+export async function updateSetting(key: string, value: string): Promise<void> {
+    db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(key, value);
+}
 
 // Service Functions
 export async function getServices(): Promise<Service[]> {

@@ -89,7 +89,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return pathname.startsWith(path);
   };
   
-  const noShellRoutes = ["/"];
+  const noShellRoutes = ["/", "/get-ticket", "/display"];
   const showShell = !noShellRoutes.includes(pathname);
 
   if (!showShell) {

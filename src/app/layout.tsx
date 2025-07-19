@@ -1,12 +1,18 @@
+
 import type { Metadata } from 'next';
 import './globals.css';
 import { AppShell } from '@/components/layout/app-shell';
 import { Toaster } from "@/components/ui/toaster"
+import { getSetting } from '@/lib/db';
 
-export const metadata: Metadata = {
-  title: 'Nome da Organização',
-  description: 'Sistema de gestão de senhas e atendimento.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const organizationName = await getSetting('organizationName') || 'Sistema de Atendimento';
+ 
+  return {
+    title: organizationName,
+    description: 'Sistema de gestão de senhas e atendimento.',
+  };
+}
 
 export default function RootLayout({
   children,
