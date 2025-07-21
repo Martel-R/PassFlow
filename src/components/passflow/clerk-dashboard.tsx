@@ -306,12 +306,22 @@ export function ClerkDashboard() {
               <Bell className="mr-2 h-4 w-4" /> Rechamada
             </Button>
             <div className="flex gap-2">
-             <Button variant="outline" onClick={handleStartService} disabled={!activeTicket || activeTicket.status === 'finished' || !!serviceStartTime}>
-                <Play className="mr-2 h-4 w-4" /> Iniciar
-            </Button>
-            <Button onClick={openFinalizeModal} disabled={!activeTicket || activeTicket.status === 'finished'}>
-              <CheckCircle className="mr-2 h-4 w-4" /> Finalizar
-            </Button>
+             {!serviceStartTime ? (
+                 <Button 
+                    variant="outline" 
+                    onClick={handleStartService} 
+                    disabled={!activeTicket || activeTicket.status === 'finished'}
+                 >
+                    <Play className="mr-2 h-4 w-4" /> Iniciar
+                </Button>
+             ) : (
+                <Button 
+                    onClick={openFinalizeModal} 
+                    disabled={!activeTicket || activeTicket.status === 'finished'}
+                >
+                    <CheckCircle className="mr-2 h-4 w-4" /> Finalizar
+                </Button>
+             )}
             </div>
           </CardFooter>
         </Card>
