@@ -6,10 +6,8 @@ export function middleware(request: NextRequest) {
   const cookie = request.cookies.get('auth-session');
   const { pathname } = request.nextUrl;
 
-  const isPublicRoute = ['/', '/get-ticket', '/display', '/clerk'].includes(pathname) || pathname.startsWith('/api/login');
   const isAdminRoute = pathname.startsWith('/admin');
   
-  // If trying to access admin routes, it's always protected
   if (isAdminRoute) {
     if (!cookie) {
       return NextResponse.redirect(new URL('/', request.url));
@@ -19,6 +17,8 @@ export function middleware(request: NextRequest) {
       if (session?.role !== 'admin') {
          return NextResponse.redirect(new URL('/clerk', request.url));
       }
+      // If user is admin and accessing admin route, allow them
+      return NextResponse.next();
     } catch (e) {
       // Invalid cookie
       const response = NextResponse.redirect(new URL('/', request.url));
@@ -41,11 +41,9 @@ export function middleware(request: NextRequest) {
     }
   }
   
-  // All other cases (including public routes) are allowed
   return NextResponse.next();
 }
 
 export const config = {
-  // The matcher prevents the middleware from running on static files, images, etc.
   matcher: ['/((?!api/logout|_next/static|_next/image|favicon.ico|notification.mp3).*)'],
 }
