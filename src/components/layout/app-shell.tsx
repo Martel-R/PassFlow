@@ -35,7 +35,7 @@ import {
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { useInitializeStore, usePassFlowActions, useSession, useOrganizationName } from "@/lib/store";
+import { usePassFlowActions, useSession, useOrganizationName, useOrganizationLogo } from "@/lib/store";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "../ui/button";
 
@@ -85,16 +85,13 @@ function AppHeader({ className, ...props }: React.ComponentProps<"header">) {
 
 export function AppShell({ 
     children, 
-    organizationName, 
-    organizationLogo 
 }: { 
     children: React.ReactNode, 
-    organizationName?: string | null,
-    organizationLogo?: string | null,
 }) {
   const pathname = usePathname();
-  useInitializeStore({ organizationName, organizationLogo }); 
   const session = useSession();
+  const organizationName = useOrganizationName();
+  const organizationLogo = useOrganizationLogo();
 
   const isActive = (path: string) => {
     return pathname.startsWith(path);

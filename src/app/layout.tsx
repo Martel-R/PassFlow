@@ -5,6 +5,7 @@ import { AppShell } from '@/components/layout/app-shell';
 import { Toaster } from "@/components/ui/toaster"
 import { getSettings } from '@/lib/db';
 import { CSSProperties } from 'react';
+import { StoreInitializer } from '@/components/layout/store-initializer';
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSettings(['organizationName']);
@@ -49,7 +50,8 @@ export default async function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        <AppShell organizationName={organizationName} organizationLogo={organizationLogo}>
+        <StoreInitializer organizationName={organizationName} organizationLogo={organizationLogo} />
+        <AppShell>
           {children}
         </AppShell>
         <Toaster />
