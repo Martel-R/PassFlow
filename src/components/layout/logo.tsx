@@ -5,20 +5,21 @@ import { Ticket } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-// The logo now accepts the organization name as a prop
-// to avoid client-side data fetching on public pages.
 export function Logo({ organizationName }: { organizationName?: string | null }) {
   const pathname = usePathname();
   const isLoginPage = pathname === '/';
 
+  // Na página de login, sempre mostrar "PassFlow". Nas outras, o nome da organização.
+  const displayName = isLoginPage ? "PassFlow" : (organizationName || "PassFlow");
+
   const content = (
      <div className="flex items-center gap-2 text-lg font-semibold text-primary">
       <Ticket className="h-6 w-6" />
-      <span>{organizationName || "Sistema"}</span>
+      <span>{displayName}</span>
     </div>
   );
 
-  // The logo on the login page should not be a link to itself.
+  // O logo na página de login não deve ser um link para si mesmo.
   if (isLoginPage) {
     return content;
   }
