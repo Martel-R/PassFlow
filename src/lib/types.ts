@@ -65,3 +65,15 @@ export type AdvertisementMedia = {
     src: string; // Data URI for image, URL for video
     duration?: number; // in seconds, only for images
 }
+
+export type TicketHistoryEntry = {
+    id: string;
+    number: string;
+    serviceName: string;
+    clerkName: string | null;
+    finishedTimestamp: number | null;
+    waitTime: number | null;
+    serviceTime: number | null;
+    notes: string | null;
+    tags: string | null;
+}

@@ -10,6 +10,7 @@ import {
   TicketStatus,
   User,
   TicketType,
+  TicketHistoryEntry,
 } from '../types';
 import { mockCategories, mockCounters, mockServices, mockUsers, mockTicketTypes } from '../mock-data';
 
@@ -555,5 +556,26 @@ export async function getRecentTickets(limit: number = 5) {
         ORDER BY t.finished_timestamp DESC
         LIMIT ?
     `).all(limit) as any[];
+    return rows;
+}
+
+
+export async function getTicketHistory(): Promise<TicketHistoryEntry[]> {
+    const rows = db.prepare(`
+        SELECT 
+            t.id,
+            t.number,
+            t.service_name as serviceName,
+            u.name as clerkName,
+            t.finished_timestamp as finishedTimestamp,
+            t.notes,
+            t.tags,
+            (t.called_timestamp - t.created_timestamp) / 1000 as waitTime,
+            (t.finished_timestamp - t.called_timestamp) / 1000 as serviceTime
+        FROM tickets t
+        LEFT JOIN users u ON t.clerk_id = u.id
+        WHERE t.status = 'finished'
+        ORDER BY t.finished_timestamp DESC
+    `).all() as any[];
     return rows;
 }

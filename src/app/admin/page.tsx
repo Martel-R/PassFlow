@@ -21,6 +21,7 @@ import {
   Tags,
   AreaChart,
   MonitorPlay,
+  History
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -45,6 +46,12 @@ const adminActions = [
     description: "Visualizar métricas e estatísticas de atendimento.",
     icon: <AreaChart className="h-6 w-6" />,
     href: "/admin/dashboard",
+  },
+  {
+    title: "Histórico de Atendimentos",
+    description: "Consultar todas as senhas que já foram finalizadas.",
+    icon: <History className="h-6 w-6" />,
+    href: "/admin/history",
   },
   {
     title: "Gerenciar Usuários",
