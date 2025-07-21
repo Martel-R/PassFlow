@@ -45,7 +45,6 @@ export default async function AdminServicesPage() {
               <TableRow>
                 <TableHead>Nome do Serviço</TableHead>
                 <TableHead>Categoria</TableHead>
-                <TableHead>Prefixo da Senha</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -54,18 +53,10 @@ export default async function AdminServicesPage() {
                 <TableRow key={service.id}>
                   <TableCell className="font-medium">{service.name}</TableCell>
                   <TableCell>
-                    <Badge
-                      variant={
-                        service.category === "priority"
-                          ? "default"
-                          : "secondary"
-                      }
-                      className={service.category === 'priority' ? 'bg-primary text-primary-foreground' : ''}
-                    >
-                      {categoryMap.get(service.category) || service.category}
+                    <Badge variant="secondary">
+                      {categoryMap.get(service.categoryId) || service.categoryId}
                     </Badge>
                   </TableCell>
-                  <TableCell>{service.prefix}</TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="icon">
                       <Edit className="h-4 w-4" />

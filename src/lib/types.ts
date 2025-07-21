@@ -2,8 +2,7 @@
 export type Service = {
   id: string;
   name: string;
-  category: string;
-  prefix: string;
+  categoryId: string;
 };
 
 export type Counter = {
@@ -23,7 +22,7 @@ export type Ticket = {
   id: string;
   number: string;
   serviceName: string;
-  serviceId?: string; // To link back to the service
+  serviceId: string;
   timestamp: Date;
   status: TicketStatus;
   counter?: string;

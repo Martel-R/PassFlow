@@ -26,7 +26,6 @@ function initDb() {
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       category_id TEXT NOT NULL,
-      prefix TEXT NOT NULL,
       FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE RESTRICT
     );
 
@@ -72,6 +71,30 @@ function initDb() {
       value TEXT
     );
   `);
+  
+  // Drop prefix from services if it exists
+  try {
+      db.prepare('SELECT prefix FROM services LIMIT 1').get();
+      // If the above does not throw, the column exists. We need to recreate the table.
+      console.log("Legacy `services` table found. Migrating...");
+      db.exec('PRAGMA foreign_keys=off;');
+      db.exec(`
+        CREATE TABLE services_new (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            category_id TEXT NOT NULL,
+            FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE RESTRICT
+        );
+        INSERT INTO services_new (id, name, category_id) SELECT id, name, category_id FROM services;
+        DROP TABLE services;
+        ALTER TABLE services_new RENAME TO services;
+      `);
+       db.exec('PRAGMA foreign_keys=on;');
+       console.log("Migration complete.");
+  } catch (e) {
+      // Column does not exist, schema is up to date.
+  }
+
 
   const categoryCount = db.prepare('SELECT COUNT(*) as count FROM categories').get() as { count: number };
   if (categoryCount.count === 0) {
@@ -81,8 +104,8 @@ function initDb() {
 
   const serviceCount = db.prepare('SELECT COUNT(*) as count FROM services').get() as { count: number };
   if (serviceCount.count === 0) {
-    const insertService = db.prepare('INSERT INTO services (id, name, category_id, prefix) VALUES (?, ?, ?, ?)');
-    mockServices.forEach(srv => insertService.run(srv.id, srv.name, srv.category, srv.prefix));
+    const insertService = db.prepare('INSERT INTO services (id, name, category_id) VALUES (?, ?, ?)');
+    mockServices.forEach(srv => insertService.run(srv.id, srv.name, srv.categoryId));
   }
   
   const counterCount = db.prepare('SELECT COUNT(*) as count FROM counters').get() as { count: number };
@@ -161,18 +184,34 @@ export async function updateSettings(settings: Record<string, string>): Promise<
 
 // Service Functions
 export async function getServices(): Promise<Service[]> {
-  const rows = db.prepare('SELECT s.id, s.name, s.prefix, s.category_id as category FROM services s').all() as any[];
+  const rows = db.prepare('SELECT s.id, s.name, s.category_id as categoryId FROM services s').all() as any[];
   return rows;
 }
 
+export async function getServicesByCategory(categoryId: string): Promise<Service[]> {
+  const rows = db.prepare('SELECT id, name, category_id as categoryId FROM services WHERE category_id = ?').all(categoryId) as any[];
+  return rows;
+}
+
+export async function getServicesForCounter(counterId: string): Promise<Service[]> {
+    const rows = db.prepare(`
+        SELECT s.id, s.name, s.category_id as categoryId
+        FROM services s
+        JOIN counter_categories cc ON s.category_id = cc.category_id
+        WHERE cc.counter_id = ?
+    `).all(counterId) as any[];
+    return rows;
+}
+
+
 // Category Functions
 export async function getCategories(): Promise<Category[]> {
-  const rows = db.prepare('SELECT id, name FROM categories').all() as any[];
+  const rows = db.prepare('SELECT id, name FROM categories ORDER BY name ASC').all() as any[];
   return rows;
 }
 
 export async function addCategory(name: string): Promise<void> {
-  const id = name.toLowerCase().replace(/\s+/g, '-');
+  const id = `cat-${Date.now()}`;
   db.prepare('INSERT INTO categories (id, name) VALUES (?, ?)').run(id, name);
 }
 
@@ -222,11 +261,12 @@ export async function getTickets(): Promise<Ticket[]> {
     }));
 }
 
-export async function addTicket(service: Service): Promise<Ticket> {
+export async function addTicket(service: Service, type: 'normal' | 'priority'): Promise<Ticket> {
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
 
-  const prefix = service.prefix;
+  const prefix = type === 'priority' ? 'P' : 'G';
+  
   const countResult = db.prepare(
     'SELECT COUNT(*) as count FROM tickets WHERE number LIKE ? AND timestamp >= ?'
   ).get(`${prefix}-%`, todayStart.getTime()) as { count: number };
@@ -283,7 +323,7 @@ export async function resetTickets(): Promise<{ count: number }> {
 
 
 export async function getServiceById(id: string): Promise<Service | null> {
-    const row = db.prepare('SELECT id, name, prefix, category_id as category FROM services WHERE id = ?').get(id) as any;
+    const row = db.prepare('SELECT id, name, category_id as categoryId FROM services WHERE id = ?').get(id) as any;
     return row || null;
 }
 

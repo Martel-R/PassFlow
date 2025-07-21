@@ -18,30 +18,51 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { getServices, addTicket as dbAddTicket } from "@/lib/db";
-import { Ticket as TicketIcon, ArrowRight, UserCheck, Briefcase } from "lucide-react";
+import { getServicesByCategory, getCategories, addTicket as dbAddTicket } from "@/lib/db";
+import { Ticket as TicketIcon, ArrowRight, User, ShieldQuestion, ChevronLeft, Building, ListTree, UserCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { usePassFlowActions } from "@/lib/store";
 import type { Service, Ticket, Category } from "@/lib/types";
 
-const serviceIcons: Record<string, React.ReactNode> = {
-  priority: <UserCheck className="h-8 w-8 text-primary" />,
-  general: <Briefcase className="h-8 w-8 text-primary" />,
+type Step = 'category' | 'service' | 'type';
+type TicketType = 'normal' | 'priority';
+
+const stepTitles: Record<Step, { title: string; description: string }> = {
+  category: {
+    title: "Passo 1: Selecione a Categoria",
+    description: "Escolha o tipo de atendimento que você precisa.",
+  },
+  service: {
+    title: "Passo 2: Selecione o Serviço",
+    description: "Escolha o serviço específico que você deseja.",
+  },
+  type: {
+    title: "Passo 3: Selecione o Tipo de Senha",
+    description: "Informe se seu atendimento é normal ou prioritário.",
+  }
 };
 
 export function TicketSelection() {
+  const [step, setStep] = useState<Step>('category');
+  
+  const [categories, setCategories] = useState<Category[]>([]);
   const [services, setServices] = useState<Service[]>([]);
+  
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
+  
   const [generatedTicket, setGeneratedTicket] = useState<Ticket | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
   const { toast } = useToast();
   const { refreshTickets } = usePassFlowActions();
 
   useEffect(() => {
-    const fetchServices = async () => {
-      const dbServices = await getServices();
-      setServices(dbServices);
+    const fetchCategories = async () => {
+      const dbCategories = await getCategories();
+      setCategories(dbCategories);
     };
-    fetchServices();
+    fetchCategories();
   }, []);
 
   useEffect(() => {
@@ -49,17 +70,31 @@ export function TicketSelection() {
     if (generatedTicket) {
       timer = setTimeout(() => {
         handleCloseDialog();
-      }, 5000); // Increased timeout to 5 seconds
+      }, 5000); 
     }
     return () => clearTimeout(timer);
   }, [generatedTicket]);
 
-  const handleServiceClick = async (service: Service) => {
+  const handleCategoryClick = async (category: Category) => {
+    const dbServices = await getServicesByCategory(category.id);
+    setServices(dbServices);
+    setSelectedCategory(category);
+    setStep('service');
+  };
+
+  const handleServiceClick = (service: Service) => {
+    setSelectedService(service);
+    setStep('type');
+  };
+
+  const handleTicketTypeClick = async (type: TicketType) => {
+    if (!selectedService) return;
+
     try {
-      const newTicket = await dbAddTicket(service);
+      const newTicket = await dbAddTicket(selectedService, type);
       setGeneratedTicket(newTicket);
-      setSelectedService(service);
-      await refreshTickets(true); // Notify other tabs about the update
+      setIsDialogOpen(true);
+      await refreshTickets(true);
 
       toast({
         title: "Senha gerada com sucesso!",
@@ -75,55 +110,128 @@ export function TicketSelection() {
     }
   };
 
+  const handleBack = () => {
+    if (step === 'type') {
+      setStep('service');
+    } else if (step === 'service') {
+      setStep('category');
+      setSelectedCategory(null);
+      setServices([]);
+    }
+  };
+
   const handleCloseDialog = () => {
-    setSelectedService(null);
+    setIsDialogOpen(false);
     setGeneratedTicket(null);
+    // Reset state to the beginning
+    setStep('category');
+    setSelectedCategory(null);
+    setSelectedService(null);
+    setServices([]);
   };
   
-  const getIconForCategory = (categoryId: string) => {
-    // A simple logic to return a specific icon based on category name or id
-    // This can be expanded with a more robust mapping.
-    if (categoryId.includes('priority')) {
-      return serviceIcons['priority'];
+  const renderStepContent = () => {
+    switch(step) {
+      case 'category':
+        return (
+          <div className="grid w-full max-w-4xl gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {categories.map((category) => (
+              <Card
+                key={category.id}
+                className="flex flex-col justify-between transform transition-transform duration-300 hover:scale-105 hover:shadow-xl cursor-pointer"
+                onClick={() => handleCategoryClick(category)}
+              >
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                     <Building className="h-8 w-8 text-primary" />
+                    <ArrowRight className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                   <CardTitle className="mt-4">{category.name}</CardTitle>
+                </CardHeader>
+              </Card>
+            ))}
+          </div>
+        );
+      case 'service':
+        return (
+          <div className="grid w-full max-w-4xl gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {services.map((service) => (
+              <Card
+                key={service.id}
+                className="flex flex-col justify-between transform transition-transform duration-300 hover:scale-105 hover:shadow-xl cursor-pointer"
+                onClick={() => handleServiceClick(service)}
+              >
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <ListTree className="h-8 w-8 text-primary" />
+                    <ArrowRight className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                  <CardTitle className="mt-4">{service.name}</CardTitle>
+                </CardHeader>
+              </Card>
+            ))}
+          </div>
+        );
+      case 'type':
+        return (
+           <div className="grid w-full max-w-2xl gap-8 md:grid-cols-2">
+              <Card
+                className="flex flex-col justify-between transform transition-transform duration-300 hover:scale-105 hover:shadow-xl cursor-pointer"
+                onClick={() => handleTicketTypeClick('normal')}
+              >
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                     <User className="h-8 w-8 text-primary" />
+                    <ArrowRight className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                   <CardTitle className="mt-4">Atendimento Normal</CardTitle>
+                </CardHeader>
+                 <CardContent>
+                    <CardDescription>Para atendimento geral sem prioridade legal.</CardDescription>
+                </CardContent>
+              </Card>
+              <Card
+                className="flex flex-col justify-between transform transition-transform duration-300 hover:scale-105 hover:shadow-xl cursor-pointer"
+                onClick={() => handleTicketTypeClick('priority')}
+              >
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                     <UserCheck className="h-8 w-8 text-primary" />
+                    <ArrowRight className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                   <CardTitle className="mt-4">Atendimento Prioritário</CardTitle>
+                </CardHeader>
+                 <CardContent>
+                    <CardDescription>Para idosos, gestantes, pessoas com deficiência, etc.</CardDescription>
+                </CardContent>
+              </Card>
+           </div>
+        );
     }
-    return serviceIcons['general'];
   }
-
 
   return (
     <>
-      <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold tracking-tight">Bem-vindo!</h2>
-        <p className="text-muted-foreground">
-          Selecione o serviço desejado para retirar sua senha.
+      <div className="text-center mb-8 relative w-full max-w-4xl">
+        {step !== 'category' && (
+            <Button 
+                variant="ghost" 
+                size="sm"
+                className="absolute left-0 top-1/2 -translate-y-1/2"
+                onClick={handleBack}
+            >
+                <ChevronLeft className="mr-2 h-4 w-4" /> Voltar
+            </Button>
+        )}
+        <h2 className="text-3xl font-bold tracking-tight">{stepTitles[step].title}</h2>
+        <p className="text-muted-foreground mt-2">
+          {stepTitles[step].description}
         </p>
       </div>
-      <div className="grid w-full max-w-4xl gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {services.map((service) => (
-          <Card
-            key={service.id}
-            className="flex flex-col justify-between transform transition-transform duration-300 hover:scale-105 hover:shadow-xl cursor-pointer"
-            onClick={() => handleServiceClick(service)}
-          >
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div>
-                  {getIconForCategory(service.category)}
-                  <CardTitle className="mt-4">{service.name}</CardTitle>
-                </div>
-                <ArrowRight className="h-6 w-6 text-muted-foreground" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <CardDescription>
-                Clique aqui para obter uma senha para {service.name.toLowerCase()}.
-              </CardDescription>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      
+      {renderStepContent()}
 
-      <Dialog open={!!generatedTicket} onOpenChange={(isOpen) => !isOpen && handleCloseDialog()}>
+      <Dialog open={isDialogOpen} onOpenChange={(isOpen) => !isOpen && handleCloseDialog()}>
         <DialogContent className="sm:max-w-md text-center">
           <DialogHeader>
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mb-4">

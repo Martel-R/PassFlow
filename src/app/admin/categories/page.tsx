@@ -17,7 +17,7 @@ import { getCategories, addCategory, updateCategory, deleteCategory } from "@/li
 import { CategoryForm } from "./category-form";
 import { DeleteCategoryDialog } from "./delete-category-dialog";
 import { revalidatePath } from "next/cache";
-import { Category } from "@/lib/types";
+import type { Category } from "@/lib/types";
 
 export default async function AdminCategoriesPage() {
   const categories = await getCategories();
@@ -27,9 +27,13 @@ export default async function AdminCategoriesPage() {
     try {
       await addCategory(name);
       revalidatePath("/admin/categories");
+      revalidatePath("/get-ticket");
       return { success: true, message: "Categoria adicionada com sucesso!" };
     } catch (error) {
-      return { success: false, message: "Erro ao adicionar categoria." };
+      const message = error instanceof Error && error.message.includes('UNIQUE constraint failed')
+        ? "Já existe uma categoria com este nome."
+        : "Erro ao adicionar categoria.";
+      return { success: false, message };
     }
   }
 
@@ -38,9 +42,13 @@ export default async function AdminCategoriesPage() {
      try {
       await updateCategory(id, name);
       revalidatePath("/admin/categories");
+      revalidatePath("/get-ticket");
        return { success: true, message: "Categoria atualizada com sucesso!" };
     } catch (error) {
-      return { success: false, message: "Erro ao atualizar categoria." };
+      const message = error instanceof Error && error.message.includes('UNIQUE constraint failed')
+        ? "Já existe uma categoria com este nome."
+        : "Erro ao atualizar categoria.";
+      return { success: false, message };
     }
   }
   
@@ -49,6 +57,7 @@ export default async function AdminCategoriesPage() {
     try {
       await deleteCategory(id);
       revalidatePath("/admin/categories");
+      revalidatePath("/get-ticket");
       return { success: true, message: "Categoria excluída com sucesso!" };
     } catch (error) {
        // A constraint error might happen if the category is in use
@@ -90,7 +99,7 @@ export default async function AdminCategoriesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {categories.map((category: Category) => (
+              {categories.length > 0 ? categories.map((category: Category) => (
                 <TableRow key={category.id}>
                   <TableCell className="font-medium">{category.name}</TableCell>
                   <TableCell className="text-right">
@@ -107,7 +116,13 @@ export default async function AdminCategoriesPage() {
                     />
                   </TableCell>
                 </TableRow>
-              ))}
+              )) : (
+                <TableRow>
+                    <TableCell colSpan={2} className="h-24 text-center">
+                        Nenhuma categoria encontrada.
+                    </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -115,4 +130,3 @@ export default async function AdminCategoriesPage() {
     </div>
   );
 }
-

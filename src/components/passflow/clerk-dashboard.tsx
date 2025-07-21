@@ -38,8 +38,8 @@ import {
   Clock,
   Tag
 } from "lucide-react";
-import { getCounterById, getServiceById, finalizeTicket, updateTicketStatus } from "@/lib/db";
-import { Ticket, Counter } from "@/lib/types";
+import { getCounterById, finalizeTicket, updateTicketStatus, getServicesForCounter } from "@/lib/db";
+import { Ticket, Counter, Service } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -67,7 +67,6 @@ export function ClerkDashboard() {
         const counter = await getCounterById(session.counterId);
         setClerkCounter(counter);
       } else if (session?.role === 'admin') {
-         // Admin can operate as a generic counter for testing
          const counter = await getCounterById("1");
          setClerkCounter(counter);
       }
@@ -94,26 +93,24 @@ export function ClerkDashboard() {
         return;
     }
 
-    const services = await Promise.all(waitingTickets.map(t => getServiceById(t.serviceId || '')));
-    
-    const nextTicket = [...waitingTickets]
-        .map((ticket, index) => ({ ticket, service: services[index] }))
-        .filter(({ service }) => service !== null)
+    // Get all services this counter can attend to
+    const availableServices = await getServicesForCounter(clerkCounter.id);
+    const availableServiceIds = new Set(availableServices.map(s => s.id));
+
+    const nextTicket = waitingTickets
+        .filter(ticket => availableServiceIds.has(ticket.serviceId || '')) // Filter tickets clerk can attend
         .sort((a, b) => {
-             if (!a.service || !b.service) return 0;
-             // Simple priority check: "priority" category comes first
-             const aIsPriority = clerkCounter.assignedCategories.includes(a.service.category) && a.service.category === 'priority';
-             const bIsPriority = clerkCounter.assignedCategories.includes(b.service.category) && b.service.category === 'priority';
-             if (aIsPriority && !bIsPriority) return -1;
-             if (!aIsPriority && bIsPriority) return 1;
-             return a.ticket.timestamp.getTime() - b.ticket.timestamp.getTime();
+            const aIsPriority = a.number.startsWith('P-');
+            const bIsPriority = b.number.startsWith('P-');
+            
+            // Priority tickets first
+            if (aIsPriority && !bIsPriority) return -1;
+            if (!aIsPriority && bIsPriority) return 1;
+            
+            // Otherwise, sort by timestamp
+            return a.timestamp.getTime() - b.timestamp.getTime();
         })
-        .find(({ service }) => {
-            if (!service) return false;
-            // Admins can call from any category, clerks only from assigned ones
-            if (session?.role === 'admin') return true;
-            return clerkCounter.assignedCategories.includes(service.category);
-        })?.ticket;
+        .find(ticket => ticket); // Find the first one in the sorted list
 
     if (nextTicket) {
       const updatedTicket = { ...nextTicket, status: 'in-progress' as const, counter: clerkCounter.name };
@@ -232,7 +229,9 @@ export function ClerkDashboard() {
                     {waitingTickets.length > 0 ? (
                       waitingTickets.map((ticket) => (
                         <TableRow key={ticket.id}>
-                          <TableCell className="font-medium">{ticket.number}</TableCell>
+                          <TableCell className="font-medium">
+                             <Badge variant={ticket.number.startsWith('P-') ? 'default' : 'secondary'}>{ticket.number}</Badge>
+                          </TableCell>
                           <TableCell>{ticket.serviceName}</TableCell>
                           <TableCell>{formatDistanceToNow(ticket.timestamp, { addSuffix: true, locale: ptBR })}</TableCell>
                         </TableRow>
