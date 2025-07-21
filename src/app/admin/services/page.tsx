@@ -1,3 +1,4 @@
+
 import {
   Card,
   CardContent,
@@ -59,7 +60,7 @@ export default async function AdminServicesPage() {
                           ? "default"
                           : "secondary"
                       }
-                      className={service.category === 'priority' ? 'bg-primary' : ''}
+                      className={service.category === 'priority' ? 'bg-primary text-primary-foreground' : ''}
                     >
                       {categoryMap.get(service.category) || service.category}
                     </Badge>

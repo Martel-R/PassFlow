@@ -102,6 +102,8 @@ export function ClerkDashboard() {
         })
         .find(({ service }) => {
             if (!service) return false;
+            // Admins can call from any category, clerks only from assigned ones
+            if (session?.role === 'admin') return true;
             return clerkCounter.assignedCategories.includes(service.category);
         })?.ticket;
 
@@ -168,8 +170,12 @@ export function ClerkDashboard() {
     }
   };
 
+  if (!session) {
+      return <div>Carregando sessão...</div>
+  }
+
   if (!clerkCounter) {
-    return <div>Carregando informações do atendente...</div>
+    return <div>Carregando informações do balcão...</div>
   }
 
   return (
