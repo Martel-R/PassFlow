@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { flushSync } from 'react-dom';
 import {
   Card,
   CardContent,
@@ -71,6 +72,11 @@ export function TicketSelection() {
   }, []);
 
   const handlePrint = () => {
+    // Flush sync ensures the state is updated and rendered before the print dialog opens
+    flushSync(() => {
+        // The state update is already done, we just need to ensure it's rendered.
+        // This is a bit of a hack, but it forces the render cycle.
+    });
     window.print();
   };
 
@@ -218,7 +224,7 @@ export function TicketSelection() {
       
       {renderStepContent()}
 
-       <div className="hidden">
+       <div className="opacity-0 pointer-events-none absolute -z-10">
           <PrintableTicket
             ref={printableTicketRef}
             ticket={generatedTicket}
@@ -229,10 +235,10 @@ export function TicketSelection() {
       <Dialog open={isDialogOpen} onOpenChange={(isOpen) => !isOpen && handleCloseDialog()}>
         <DialogContent className="sm:max-w-md text-center">
           <DialogHeader>
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mb-4">
+             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mb-4">
               <TicketIcon className="h-10 w-10 text-primary" />
             </div>
-            <DialogTitle className="text-2xl">Senha Gerada!</DialogTitle>
+            <DialogTitle>Senha Gerada!</DialogTitle>
             <DialogDescription>
               Aguarde para ser chamado.
             </DialogDescription>
