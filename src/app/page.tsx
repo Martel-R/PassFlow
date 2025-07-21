@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Logo } from "@/components/layout/logo";
 import { Separator } from "@/components/ui/separator";
-import { MonitorPlay, Ticket as TicketIcon } from "lucide-react";
+import { MonitorPlay, Ticket as TicketIcon, UserCog } from "lucide-react";
 import Link from "next/link";
 
 export default function LoginPage() {
@@ -102,7 +102,13 @@ export default function LoginPage() {
              <div className="flex flex-col gap-2">
                 <Button variant="secondary" asChild>
                     <Link href="/clerk">
-                        Acessar como Visitante
+                        Acessar Painel de Atendente
+                    </Link>
+                </Button>
+                <Button variant="secondary" asChild>
+                    <Link href="/admin">
+                         <UserCog />
+                         Acessar Painel de Administrador
                     </Link>
                 </Button>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
