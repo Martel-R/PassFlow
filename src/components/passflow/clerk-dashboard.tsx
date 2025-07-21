@@ -56,6 +56,9 @@ export function ClerkDashboard() {
   const [clerkCounter, setClerkCounter] = useState<Counter | null>(null);
   const { toast } = useToast();
   
+  const [serviceStartTime, setServiceStartTime] = useState<number | null>(null);
+  const [serviceDuration, setServiceDuration] = useState<number>(0);
+  
   // Fetch initial data on component mount
   useEffect(() => {
     refreshTickets();
@@ -76,7 +79,25 @@ export function ClerkDashboard() {
     }
   }, [session]);
 
+  // Timer effect
+  useEffect(() => {
+    let timer: NodeJS.Timeout | null = null;
+    if (serviceStartTime) {
+      timer = setInterval(() => {
+        setServiceDuration(Math.floor((Date.now() - serviceStartTime) / 1000));
+      }, 1000);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [serviceStartTime]);
+
   const waitingTickets = useMemo(() => tickets.filter(t => t.status === 'waiting'), [tickets]);
+
+  const resetServiceTimer = () => {
+    setServiceStartTime(null);
+    setServiceDuration(0);
+  };
 
   const handleCallNext = async () => {
     if (activeTicket && activeTicket.status !== 'finished') {
@@ -110,6 +131,7 @@ export function ClerkDashboard() {
         .find(ticket => ticket); // Find the first one in the sorted list
 
     if (nextTicket) {
+      resetServiceTimer();
       const updatedTicket = { ...nextTicket, status: 'in-progress' as const, counter: clerkCounter.name };
       setActiveTicket(updatedTicket);
       
@@ -140,7 +162,8 @@ export function ClerkDashboard() {
   };
   
   const handleStartService = () => {
-      if (activeTicket) {
+      if (activeTicket && !serviceStartTime) {
+        setServiceStartTime(Date.now());
         toast({
             title: "Atendimento Iniciado",
             description: `Iniciado atendimento para a senha ${activeTicket.number}.`
@@ -162,6 +185,7 @@ export function ClerkDashboard() {
       await refreshTickets(true); // pass true to notify other tabs
 
       setActiveTicket(null);
+      resetServiceTimer();
       setFinalizeModalOpen(false);
       setNotes("");
       setTags("");
@@ -170,6 +194,12 @@ export function ClerkDashboard() {
         description: `Atendimento da senha ${activeTicket.number} foi concluído.`,
       });
     }
+  };
+
+  const formatDuration = (totalSeconds: number) => {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
   };
 
   if (!session) {
@@ -257,6 +287,12 @@ export function ClerkDashboard() {
               <div className="text-center">
                 <p className="text-6xl font-bold text-primary">{activeTicket.number}</p>
                 <p className="text-muted-foreground">{activeTicket.serviceName}</p>
+                {serviceStartTime && (
+                  <div className="mt-4 flex items-center justify-center gap-2 text-lg font-mono text-foreground">
+                    <Clock className="h-5 w-5" />
+                    <span>{formatDuration(serviceDuration)}</span>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-center text-muted-foreground">
@@ -270,7 +306,7 @@ export function ClerkDashboard() {
               <Bell className="mr-2 h-4 w-4" /> Rechamada
             </Button>
             <div className="flex gap-2">
-             <Button variant="outline" onClick={handleStartService} disabled={!activeTicket || activeTicket.status === 'finished'}>
+             <Button variant="outline" onClick={handleStartService} disabled={!activeTicket || activeTicket.status === 'finished' || !!serviceStartTime}>
                 <Play className="mr-2 h-4 w-4" /> Iniciar
             </Button>
             <Button onClick={openFinalizeModal} disabled={!activeTicket || activeTicket.status === 'finished'}>
