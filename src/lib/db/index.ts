@@ -58,15 +58,19 @@ function initDb() {
       id TEXT PRIMARY KEY,
       number TEXT NOT NULL,
       service_id TEXT NOT NULL,
-      timestamp INTEGER NOT NULL,
+      created_timestamp INTEGER NOT NULL,
+      called_timestamp INTEGER,
+      finished_timestamp INTEGER,
       status TEXT NOT NULL,
       priority_weight INTEGER NOT NULL,
       counter_id TEXT,
+      clerk_id TEXT,
       notes TEXT,
       tags TEXT,
       service_name TEXT,
       FOREIGN KEY (service_id) REFERENCES services (id),
-      FOREIGN KEY (counter_id) REFERENCES counters (id)
+      FOREIGN KEY (counter_id) REFERENCES counters (id),
+      FOREIGN KEY (clerk_id) REFERENCES users (id)
     );
 
      CREATE TABLE IF NOT EXISTS users (
@@ -140,6 +144,14 @@ function migrateDb() {
     try { db.prepare('SELECT icon FROM categories LIMIT 1').get(); } catch (e) { db.exec("ALTER TABLE categories ADD COLUMN icon TEXT NOT NULL DEFAULT 'Box'"); }
     try { db.prepare('SELECT icon FROM services LIMIT 1').get(); } catch (e) { db.exec("ALTER TABLE services ADD COLUMN icon TEXT NOT NULL DEFAULT 'Box'"); }
     try { db.prepare('SELECT icon FROM ticket_types LIMIT 1').get(); } catch (e) { db.exec("ALTER TABLE ticket_types ADD COLUMN icon TEXT NOT NULL DEFAULT 'Box'"); }
+    
+    // Migration for Dashboard Timestamps
+    try { db.prepare('SELECT created_timestamp FROM tickets LIMIT 1').get(); } catch (e) { 
+        db.exec('ALTER TABLE tickets RENAME COLUMN timestamp TO created_timestamp');
+        db.exec('ALTER TABLE tickets ADD COLUMN called_timestamp INTEGER');
+        db.exec('ALTER TABLE tickets ADD COLUMN finished_timestamp INTEGER');
+        db.exec('ALTER TABLE tickets ADD COLUMN clerk_id TEXT REFERENCES users(id)');
+    }
 }
 
 
@@ -251,7 +263,7 @@ export async function getTickets(): Promise<Ticket[]> {
             t.id, 
             t.number, 
             t.service_name as serviceName, 
-            t.timestamp, 
+            t.created_timestamp as timestamp, 
             t.status,
             t.priority_weight as priorityWeight,
             c.name as counter, 
@@ -260,7 +272,7 @@ export async function getTickets(): Promise<Ticket[]> {
             t.service_id as serviceId
         FROM tickets t
         LEFT JOIN counters c ON t.counter_id = c.id
-        ORDER BY t.timestamp DESC
+        ORDER BY t.created_timestamp DESC
     `).all() as any[];
 
     return rows.map(row => ({
@@ -277,7 +289,7 @@ export async function addTicket(service: Service, ticketType: TicketType): Promi
   const prefix = ticketType.prefix;
   
   const countResult = db.prepare(
-    'SELECT COUNT(*) as count FROM tickets WHERE number LIKE ? AND timestamp >= ?'
+    'SELECT COUNT(*) as count FROM tickets WHERE number LIKE ? AND created_timestamp >= ?'
   ).get(`${prefix}-%`, todayStart.getTime()) as { count: number };
   
   const nextNumber = countResult.count + 1;
@@ -288,7 +300,7 @@ export async function addTicket(service: Service, ticketType: TicketType): Promi
   const status = 'waiting';
 
   db.prepare(`
-        INSERT INTO tickets (id, number, service_id, timestamp, status, service_name, priority_weight)
+        INSERT INTO tickets (id, number, service_id, created_timestamp, status, service_name, priority_weight)
         VALUES (?, ?, ?, ?, ?, ?, ?)
     `).run(id, ticketNumber, service.id, timestamp.getTime(), status, service.name, ticketType.priorityWeight);
     
@@ -306,20 +318,39 @@ export async function addTicket(service: Service, ticketType: TicketType): Promi
 }
 
 
-export async function updateTicketStatus(id: string, status: TicketStatus, counterId?: string): Promise<void> {
+export async function updateTicketStatus(id: string, status: TicketStatus, counterId?: string, clerkId?: string): Promise<void> {
+    const updates: string[] = ['status = ?'];
+    const params: (string | number | null)[] = [status];
+
+    if (status === 'in-progress') {
+        updates.push('called_timestamp = ?');
+        params.push(Date.now());
+        if (counterId) {
+            updates.push('counter_id = ?');
+            params.push(counterId);
+        }
+        if (clerkId) {
+            updates.push('clerk_id = ?');
+            params.push(clerkId);
+        }
+    }
+    
+    params.push(id);
+
     db.prepare(`
         UPDATE tickets 
-        SET status = ?, counter_id = ?
+        SET ${updates.join(', ')}
         WHERE id = ?
-    `).run(status, counterId, id);
+    `).run(...params);
 }
+
 
 export async function finalizeTicket(id: string, notes: string, tags: string[]): Promise<void> {
     db.prepare(`
         UPDATE tickets
-        SET status = 'finished', notes = ?, tags = ?
+        SET status = 'finished', notes = ?, tags = ?, finished_timestamp = ?
         WHERE id = ?
-    `).run(notes, tags.join(','), id);
+    `).run(notes, tags.join(','), Date.now(), id);
 }
 
 export async function resetTickets(): Promise<{ count: number }> {
@@ -378,4 +409,92 @@ export async function updateTicketType(id: string, data: Omit<TicketType, 'id'>)
 
 export async function deleteTicketType(id: string): Promise<void> {
   db.prepare('DELETE FROM ticket_types WHERE id = ?').run(id);
+}
+
+
+// Dashboard Functions
+export async function getDashboardMetrics() {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayStartMs = todayStart.getTime();
+
+    // Tickets Today
+    const ticketsToday = db.prepare('SELECT count(*) as count FROM tickets WHERE created_timestamp >= ?').get(todayStartMs) as { count: number };
+
+    // Waiting Now
+    const waitingNow = db.prepare("SELECT count(*) as count FROM tickets WHERE status = 'waiting'").get() as { count: number };
+    
+    // Average Times
+    const finishedToday = db.prepare('SELECT created_timestamp, called_timestamp, finished_timestamp FROM tickets WHERE status = "finished" AND created_timestamp >= ?').all(todayStartMs) as any[];
+    
+    let totalWaitTime = 0;
+    let totalServiceTime = 0;
+    let finishedCount = 0;
+
+    finishedToday.forEach(t => {
+        if (t.called_timestamp && t.created_timestamp) {
+            totalWaitTime += t.called_timestamp - t.created_timestamp;
+        }
+        if (t.finished_timestamp && t.called_timestamp) {
+            totalServiceTime += t.finished_timestamp - t.called_timestamp;
+            finishedCount++;
+        }
+    });
+
+    const avgWaitTimeSeconds = finishedCount > 0 ? (totalWaitTime / finishedCount) / 1000 : 0;
+    const avgServiceTimeSeconds = finishedCount > 0 ? (totalServiceTime / finishedCount) / 1000 : 0;
+    
+    // Top Services
+    const topServices = db.prepare(`
+        SELECT service_name as name, COUNT(*) as count 
+        FROM tickets 
+        WHERE created_timestamp >= ?
+        GROUP BY service_name 
+        ORDER BY count DESC 
+        LIMIT 5
+    `).all(todayStartMs);
+
+    // Tickets Last 7 Days
+    const ticketsLast7Days = [];
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0);
+        const dayEnd = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59);
+
+        const row = db.prepare('SELECT count(*) as count FROM tickets WHERE created_timestamp >= ? AND created_timestamp <= ?').get(dayStart.getTime(), dayEnd.getTime()) as { count: number };
+        
+        ticketsLast7Days.push({
+            date: dayStart.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit'}),
+            count: row.count
+        });
+    }
+
+    return {
+        ticketsToday: ticketsToday.count,
+        waitingNow: waitingNow.count,
+        avgWaitTimeSeconds,
+        avgServiceTimeSeconds,
+        topServices,
+        ticketsLast7Days,
+    };
+}
+
+
+export async function getRecentTickets(limit: number = 5) {
+    const rows = db.prepare(`
+        SELECT 
+            t.id,
+            t.number,
+            t.service_name as serviceName,
+            u.name as clerkName,
+            (t.called_timestamp - t.created_timestamp) / 1000 as waitTime,
+            (t.finished_timestamp - t.called_timestamp) / 1000 as serviceTime
+        FROM tickets t
+        LEFT JOIN users u ON t.clerk_id = u.id
+        WHERE t.status = 'finished'
+        ORDER BY t.finished_timestamp DESC
+        LIMIT ?
+    `).all(limit) as any[];
+    return rows;
 }

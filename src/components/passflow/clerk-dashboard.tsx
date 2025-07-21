@@ -113,7 +113,7 @@ export function ClerkDashboard() {
       const updatedTicket = { ...nextTicket, status: 'in-progress' as const, counter: clerkCounter.name };
       setActiveTicket(updatedTicket);
       
-      await updateTicketStatus(nextTicket.id, 'in-progress', clerkCounter.id);
+      await updateTicketStatus(nextTicket.id, 'in-progress', clerkCounter.id, session.userId);
       callTicket(updatedTicket, clerkCounter.name);
       await refreshTickets(true); // pass true to notify other tabs
 

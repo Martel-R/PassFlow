@@ -19,6 +19,7 @@ import {
   ArrowRight,
   UserCog,
   Tags,
+  AreaChart,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -38,6 +39,12 @@ import { usePassFlowActions } from "@/lib/store";
 
 
 const adminActions = [
+  {
+    title: "Dashboard",
+    description: "Visualizar métricas e estatísticas de atendimento.",
+    icon: <AreaChart className="h-6 w-6" />,
+    href: "/admin/dashboard",
+  },
   {
     title: "Gerenciar Usuários",
     description: "Criar, editar e remover usuários.",

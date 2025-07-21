@@ -35,12 +35,16 @@ export type Ticket = {
   number: string;
   serviceName: string;
   serviceId: string;
-  timestamp: Date;
+  timestamp: Date; // Keep `timestamp` as the primary user-facing time for simplicity in components
+  createdTimestamp?: Date;
+  calledTimestamp?: Date;
+  finishedTimestamp?: Date;
   status: TicketStatus;
   priorityWeight: number;
   counter?: string;
   counterId?: string;
   clerk?: string;
+  clerkId?: string;
   notes?: string;
   tags?: string[];
 };
@@ -51,6 +55,6 @@ export type User = {
     username: string;
     password?: string; // Not ideal for production, but okay for a prototype
     role: 'admin' | 'clerk';
-    counter_id?: string;
+    counterId?: string;
     counterName?: string;
 };
