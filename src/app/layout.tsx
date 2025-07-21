@@ -6,6 +6,13 @@ import { Toaster } from "@/components/ui/toaster"
 import { getSettings } from '@/lib/db';
 import { CSSProperties } from 'react';
 import { StoreInitializer } from '@/components/layout/store-initializer';
+import { Inter } from 'next/font/google';
+
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+});
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSettings(['organizationName']);
@@ -43,12 +50,8 @@ export default async function RootLayout({
   } as CSSProperties;
 
   return (
-    <html lang="en" suppressHydrationWarning style={themeStyle}>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-      </head>
+    <html lang="en" suppressHydrationWarning style={themeStyle} className={inter.variable}>
+      <head />
       <body className="font-body antialiased">
         <StoreInitializer organizationName={organizationName} organizationLogo={organizationLogo} />
         <AppShell>
