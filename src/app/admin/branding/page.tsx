@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { BrandingPageClient } from "./branding-page-client";
 
 function hexToHsl(hex: string): string {
-  if (!hex) return '0 0% 0%';
+  if (!hex || typeof hex !== 'string') return '0 0% 0%';
   let r = 0, g = 0, b = 0;
   if (hex.length === 4) {
     r = parseInt(hex[1] + hex[1], 16);
@@ -34,7 +34,7 @@ function hexToHsl(hex: string): string {
   return `${h} ${s}% ${l}%`;
 }
 
-function hslToHex(hslStr: string | null): string {
+function hslToHex(hslStr: string | null | undefined): string {
   if (!hslStr || typeof hslStr !== 'string') return "#000000";
   const match = hslStr.match(/(\d+)\s+(\d+)%\s+(\d+)%/);
   if (!match) return "#000000";

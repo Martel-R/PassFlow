@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,11 +24,26 @@ interface BrandingFormProps {
 }
 
 export function BrandingForm({ initialData, updateBrandingAction }: BrandingFormProps) {
-  const [data, setData] = useState(initialData);
+  const [data, setData] = useState({
+      ...initialData,
+      primaryColor: initialData.primaryColor || '#000000',
+      accentColor: initialData.accentColor || '#000000',
+      backgroundColor: initialData.backgroundColor || '#000000',
+  });
   const [logoPreview, setLogoPreview] = useState<string | null>(initialData.logo);
   
   const logoFileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    setData({
+        ...initialData,
+        primaryColor: initialData.primaryColor || '#000000',
+        accentColor: initialData.accentColor || '#000000',
+        backgroundColor: initialData.backgroundColor || '#000000',
+    });
+    setLogoPreview(initialData.logo)
+  }, [initialData])
 
   const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
