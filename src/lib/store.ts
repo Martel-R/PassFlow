@@ -26,21 +26,6 @@ interface InitializeParams {
     organizationLogo?: string | null;
 }
 
-// This custom hook ensures that the store is initialized only once
-export function useInitializeStore({ organizationName, organizationLogo }: InitializeParams) {
-    const { initialize, listenToBroadcast } = usePassFlowActions();
-    const initialized = useRef(false);
-
-    useEffect(() => {
-        if (!initialized.current) {
-            initialize({ organizationName, organizationLogo });
-            listenToBroadcast();
-            initialized.current = true;
-        }
-    }, [initialize, listenToBroadcast, organizationName, organizationLogo]);
-};
-
-
 // Hook to get session data from cookie
 export function useSession() {
     return usePassFlowStore((state) => state.session);
@@ -87,9 +72,8 @@ const usePassFlowStore = create<PassFlowState>((set, get) => ({
     initialize: async ({ organizationName, organizationLogo }) => {
         try {
             const tickets = await getTickets();
-            const cookie = Cookies.get('auth-session');
-            const session = cookie ? JSON.parse(cookie) : null;
-            set({ tickets, session, organizationName: organizationName || null, organizationLogo: organizationLogo || null });
+            // Session is now set synchronously in StoreInitializer
+            set({ tickets, organizationName: organizationName || null, organizationLogo: organizationLogo || null });
         } catch (error) {
             console.error("Failed to initialize store:", error);
             set({ organizationName: organizationName || null, organizationLogo: organizationLogo || null });
