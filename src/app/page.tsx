@@ -99,19 +99,26 @@ export default function LoginPage() {
         <CardContent>
           <div className="space-y-4 text-center">
              <p className="text-sm text-muted-foreground">Ou acesse diretamente:</p>
-             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <Button variant="outline" asChild>
-                    <Link href="/get-ticket">
-                        <TicketIcon />
-                        <span>Retirar Senha</span>
+             <div className="flex flex-col gap-2">
+                <Button variant="secondary" asChild>
+                    <Link href="/clerk">
+                        Acessar como Visitante
                     </Link>
                 </Button>
-                 <Button variant="outline" asChild>
-                    <Link href="/display">
-                        <MonitorPlay />
-                        <span>Tela de Chamada</span>
-                    </Link>
-                </Button>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <Button variant="outline" asChild>
+                        <Link href="/get-ticket">
+                            <TicketIcon />
+                            <span>Retirar Senha</span>
+                        </Link>
+                    </Button>
+                     <Button variant="outline" asChild>
+                        <Link href="/display">
+                            <MonitorPlay />
+                            <span>Tela de Chamada</span>
+                        </Link>
+                    </Button>
+                 </div>
              </div>
           </div>
         </CardContent>

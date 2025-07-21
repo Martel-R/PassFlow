@@ -6,57 +6,43 @@ export function middleware(request: NextRequest) {
   const cookie = request.cookies.get('auth-session');
   const { pathname } = request.nextUrl;
 
-  const isPublicRoute = ['/', '/get-ticket', '/display'].includes(pathname) || pathname.startsWith('/api/login');
+  const isPublicRoute = ['/', '/get-ticket', '/display', '/clerk'].includes(pathname) || pathname.startsWith('/api/login');
   const isAdminRoute = pathname.startsWith('/admin');
-  const isClerkRoute = pathname.startsWith('/clerk');
-
-  // If no session cookie exists
-  if (!cookie) {
-    // Allow access to public routes
-    if (isPublicRoute) {
-      return NextResponse.next();
+  
+  // If trying to access admin routes, it's always protected
+  if (isAdminRoute) {
+    if (!cookie) {
+      return NextResponse.redirect(new URL('/', request.url));
     }
-    // For any other protected route, redirect to login
-    const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = '/';
-    return NextResponse.redirect(loginUrl);
+    try {
+      const session = JSON.parse(cookie.value);
+      if (session?.role !== 'admin') {
+         return NextResponse.redirect(new URL('/clerk', request.url));
+      }
+    } catch (e) {
+      // Invalid cookie
+      const response = NextResponse.redirect(new URL('/', request.url));
+      response.cookies.delete('auth-session');
+      return response;
+    }
   }
-
-  // If a session cookie exists, try to parse it
-  try {
-    const session = JSON.parse(cookie.value);
-    const { role } = session;
-
-    if (!role) {
-      throw new Error("Invalid session: role is missing");
+  
+  // If the user is logged in and tries to access the main login page, redirect them
+  if (pathname === '/' && cookie) {
+    try {
+       const session = JSON.parse(cookie.value);
+       const redirectUrl = session.role === 'admin' ? '/admin' : '/clerk';
+       return NextResponse.redirect(new URL(redirectUrl, request.url));
+    } catch (e) {
+       // Invalid cookie, let them stay on the login page but clear the cookie
+       const response = NextResponse.next();
+       response.cookies.delete('auth-session');
+       return response;
     }
-
-    // If user is logged in and tries to access the login page, redirect them to their dashboard
-    if (pathname === '/') {
-       const dashboardUrl = request.nextUrl.clone();
-       dashboardUrl.pathname = role === 'admin' ? '/admin' : '/clerk';
-       return NextResponse.redirect(dashboardUrl);
-    }
-    
-    // If an admin tries to access a clerk-only route, it's fine (admins can do everything)
-    // If a clerk tries to access an admin route, redirect them
-    if (isAdminRoute && role !== 'admin') {
-      const clerkUrl = request.nextUrl.clone();
-      clerkUrl.pathname = '/clerk';
-      return NextResponse.redirect(clerkUrl);
-    }
-
-    // If all checks pass, allow the request to proceed
-    return NextResponse.next();
-
-  } catch (e) {
-    // If the cookie is invalid, delete it and redirect to login
-    const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = '/';
-    const response = NextResponse.redirect(loginUrl);
-    response.cookies.delete('auth-session');
-    return response;
   }
+  
+  // All other cases (including public routes) are allowed
+  return NextResponse.next();
 }
 
 export const config = {
