@@ -89,6 +89,13 @@ function initDb() {
       value TEXT
     );
   `);
+  
+  // Create indexes for performance
+  db.exec('CREATE INDEX IF NOT EXISTS idx_tickets_status ON tickets(status);');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_tickets_created_timestamp ON tickets(created_timestamp);');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_tickets_number ON tickets(number);');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);');
+
 
   const categoryCount = db.prepare('SELECT COUNT(*) as count FROM categories').get() as { count: number };
   if (categoryCount.count === 0) {
