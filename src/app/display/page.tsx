@@ -1,12 +1,18 @@
 
 import { DisplayScreen } from "@/components/passflow/display-screen";
-import { getSetting } from "@/lib/db";
+import { getSettings } from "@/lib/db";
 
 export default async function DisplayPage() {
-    const organizationName = await getSetting('organizationName');
+    const settings = await getSettings(['organizationName', 'advertisementBanner']);
+    const organizationName = settings.organizationName;
+    const advertisementBanner = settings.advertisementBanner;
+
     return (
         <div className="h-screen w-screen bg-background">
-            <DisplayScreen organizationName={organizationName} />
+            <DisplayScreen 
+                organizationName={organizationName} 
+                advertisementBanner={advertisementBanner} 
+            />
         </div>
     );
 }

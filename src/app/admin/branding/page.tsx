@@ -74,6 +74,7 @@ export default async function AdminBrandingPage() {
     "theme.primary",
     "theme.accent",
     "theme.background",
+    "advertisementBanner",
   ]);
 
   const brandingData = {
@@ -82,6 +83,7 @@ export default async function AdminBrandingPage() {
     primaryColor: hslToHex(settings["theme.primary"] || "210 70% 50%"),
     accentColor: hslToHex(settings["theme.accent"] || "180 60% 40%"),
     backgroundColor: hslToHex(settings["theme.background"] || "210 20% 95%"),
+    advertisementBanner: settings.advertisementBanner || null,
   };
 
   async function handleUpdateBranding(formData: FormData) {
@@ -96,6 +98,7 @@ export default async function AdminBrandingPage() {
     
     await updateSettings(settingsToUpdate);
 
+    // Handle Logo
     const logoFile = formData.get("logo") as File;
     const removeLogo = formData.get("removeLogo") === 'true';
 
@@ -109,7 +112,22 @@ export default async function AdminBrandingPage() {
         await updateSetting('organizationLogo', logoDataUri);
     }
     
+    // Handle Advertisement Banner
+    const bannerFile = formData.get("advertisementBanner") as File;
+    const removeBanner = formData.get("removeBanner") === 'true';
+
+    if (removeBanner) {
+        await updateSetting('advertisementBanner', '');
+    } else if (bannerFile && bannerFile.size > 0) {
+        if (bannerFile.size > 500 * 1024) { // 500KB size limit
+             return { success: false, message: "O arquivo do banner é muito grande. O limite é de 500KB." };
+        }
+        const bannerDataUri = await fileToDataUri(bannerFile);
+        await updateSetting('advertisementBanner', bannerDataUri);
+    }
+
     revalidatePath("/", "layout");
+    revalidatePath("/display");
     
     return { success: true, message: "Branding atualizado com sucesso!" };
   }
@@ -122,7 +140,7 @@ export default async function AdminBrandingPage() {
             Branding Personalizado
           </h2>
           <p className="text-muted-foreground">
-            Ajuste o nome, as cores e o logo para se adequar à sua marca.
+            Ajuste o nome, as cores, o logo e o banner para se adequar à sua marca.
           </p>
         </div>
       </div>
@@ -130,7 +148,7 @@ export default async function AdminBrandingPage() {
         <CardHeader>
           <CardTitle>Identidade da Organização</CardTitle>
           <CardDescription>
-            Atualize o nome, as cores e o logo do sistema.
+            Atualize o nome, as cores, o logo e o banner do sistema.
           </CardDescription>
         </CardHeader>
         <CardContent>

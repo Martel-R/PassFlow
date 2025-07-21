@@ -134,6 +134,7 @@ function initDb() {
       db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('theme.primary', '210 70% 50%');
       db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('theme.accent', '180 60% 40%');
       db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('theme.background', '210 20% 95%');
+      db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('advertisementBanner', '');
   }
 }
 

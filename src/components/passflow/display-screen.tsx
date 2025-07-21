@@ -17,7 +17,15 @@ import { Volume2, Clock } from "lucide-react";
 import Image from "next/image";
 import { Logo } from "../layout/logo";
 
-export function DisplayScreen({ organizationName: initialName }: { organizationName?: string | null }) {
+interface DisplayScreenProps {
+  organizationName?: string | null;
+  advertisementBanner?: string | null;
+}
+
+export function DisplayScreen({ 
+  organizationName: initialName,
+  advertisementBanner: initialBanner 
+}: DisplayScreenProps) {
   const calledTicket = useCalledTicket();
   const callHistory = useCallHistory();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -26,6 +34,7 @@ export function DisplayScreen({ organizationName: initialName }: { organizationN
   // Use data from store, which is initialized from layout server component
   const organizationName = useOrganizationName() ?? initialName;
   const organizationLogo = useOrganizationLogo();
+  const bannerSrc = initialBanner || "https://placehold.co/1200x800.png";
 
   useEffect(() => {
     if (calledTicket) {
@@ -59,11 +68,12 @@ export function DisplayScreen({ organizationName: initialName }: { organizationN
                 </CardHeader>
                 <CardContent className="h-full p-0 relative">
                   <Image 
-                      src="https://placehold.co/1200x800.png"
+                      src={bannerSrc}
                       alt="Advertisement"
                       fill
                       data-ai-hint="advertisement marketing"
                       className="object-cover rounded-b-lg"
+                      key={bannerSrc} // Re-render if banner source changes
                     />
                 </CardContent>
               </Card>
