@@ -489,24 +489,16 @@ export async function getDashboardMetrics() {
     const waitingNow = db.prepare("SELECT count(*) as count FROM tickets WHERE status = 'waiting'").get() as { count: number };
     
     // Average Times
-    const finishedToday = db.prepare('SELECT created_timestamp, called_timestamp, finished_timestamp FROM tickets WHERE status = "finished" AND created_timestamp >= ?').all(todayStartMs) as any[];
-    
-    let totalWaitTime = 0;
-    let totalServiceTime = 0;
-    let finishedCount = 0;
+    const timeMetrics = db.prepare(`
+        SELECT 
+            AVG(called_timestamp - created_timestamp) as avgWait,
+            AVG(finished_timestamp - called_timestamp) as avgService
+        FROM tickets
+        WHERE status = 'finished' AND created_timestamp >= ?
+    `).get(todayStartMs) as { avgWait: number | null, avgService: number | null };
 
-    finishedToday.forEach(t => {
-        if (t.called_timestamp && t.created_timestamp) {
-            totalWaitTime += t.called_timestamp - t.created_timestamp;
-        }
-        if (t.finished_timestamp && t.called_timestamp) {
-            totalServiceTime += t.finished_timestamp - t.called_timestamp;
-            finishedCount++;
-        }
-    });
-
-    const avgWaitTimeSeconds = finishedCount > 0 ? (totalWaitTime / finishedCount) / 1000 : 0;
-    const avgServiceTimeSeconds = finishedCount > 0 ? (totalServiceTime / finishedCount) / 1000 : 0;
+    const avgWaitTimeSeconds = (timeMetrics.avgWait || 0) / 1000;
+    const avgServiceTimeSeconds = (timeMetrics.avgService || 0) / 1000;
     
     // Top Services
     const topServices = db.prepare(`

@@ -37,7 +37,9 @@ interface AdminDashboardClientProps {
 export function AdminDashboardClient({ metrics, recentTickets }: AdminDashboardClientProps) {
     const formatDuration = (seconds: number) => {
         if (isNaN(seconds) || seconds < 0) return 'N/A';
-        return formatDistanceStrict(0, seconds * 1000, { unit: 'minute', locale: ptBR });
+        const minutes = Math.floor(seconds / 60);
+        if (minutes < 1) return 'menos de 1 min';
+        return formatDistanceStrict(0, seconds * 1000, { locale: ptBR });
     };
 
     return (
