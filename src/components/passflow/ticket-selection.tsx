@@ -19,10 +19,11 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { getServicesByCategory, getCategories, addTicket as dbAddTicket, getTicketTypes } from "@/lib/db";
-import { Ticket as TicketIcon, ArrowRight, User, ShieldQuestion, ChevronLeft, Building, ListTree, UserCheck, Tags } from "lucide-react";
+import { Ticket as TicketIcon, ArrowRight, ChevronLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { usePassFlowActions } from "@/lib/store";
 import type { Service, Ticket, Category, TicketType } from "@/lib/types";
+import { DynamicIcon } from "./dynamic-icon";
 
 type Step = 'category' | 'service' | 'type';
 
@@ -145,7 +146,7 @@ export function TicketSelection() {
               >
                 <CardHeader>
                   <div className="flex items-start justify-between">
-                     <Building className="h-8 w-8 text-primary" />
+                     <DynamicIcon name={category.icon} className="h-8 w-8 text-primary" />
                     <ArrowRight className="h-6 w-6 text-muted-foreground" />
                   </div>
                    <CardTitle className="mt-4">{category.name}</CardTitle>
@@ -165,7 +166,7 @@ export function TicketSelection() {
               >
                 <CardHeader>
                   <div className="flex items-start justify-between">
-                    <ListTree className="h-8 w-8 text-primary" />
+                    <DynamicIcon name={service.icon} className="h-8 w-8 text-primary" />
                     <ArrowRight className="h-6 w-6 text-muted-foreground" />
                   </div>
                   <CardTitle className="mt-4">{service.name}</CardTitle>
@@ -185,7 +186,7 @@ export function TicketSelection() {
                 >
                     <CardHeader>
                     <div className="flex items-start justify-between">
-                        <Tags className="h-8 w-8 text-primary" />
+                        <DynamicIcon name={type.icon} className="h-8 w-8 text-primary" />
                         <ArrowRight className="h-6 w-6 text-muted-foreground" />
                     </div>
                     <CardTitle className="mt-4">{type.name}</CardTitle>

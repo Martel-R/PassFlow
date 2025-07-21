@@ -14,30 +14,30 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import type { TicketType } from "@/lib/types";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import type { Service, Category } from "@/lib/types";
 
-type FormData = Omit<TicketType, 'id'>;
+type FormData = Omit<Service, 'id'>;
 
-interface TicketTypeFormProps {
-  initialData?: TicketType;
+interface ServiceFormProps {
+  initialData?: Service;
+  categories: Category[];
   formAction: (data: FormData, id?: string) => Promise<{ success: boolean; message: string }>;
   children: React.ReactNode;
 }
 
-export function TicketTypeForm({ 
+export function ServiceForm({ 
   initialData, 
+  categories,
   formAction, 
   children 
-}: TicketTypeFormProps) {
+}: ServiceFormProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [formData, setFormData] = useState<FormData>(
     initialData || {
       name: "",
-      description: "",
-      prefix: "",
-      priorityWeight: 1,
+      categoryId: categories[0]?.id || "",
       icon: "Box",
     }
   );
@@ -46,23 +46,23 @@ export function TicketTypeForm({
 
   const handleOpenChange = (open: boolean) => {
     if (!open) {
-      // Reset form when dialog closes
-      setFormData(initialData || { name: "", description: "", prefix: "", priorityWeight: 1, icon: "Box" });
+      setFormData(initialData || { name: "", categoryId: categories[0]?.id || "", icon: "Box" });
     }
     setIsOpen(open);
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'number' ? parseInt(value, 10) || 0 : value
-    }));
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+  
+  const handleSelectChange = (value: string) => {
+    setFormData(prev => ({ ...prev, categoryId: value }));
   };
 
   const handleSubmit = async () => {
-    if (!formData.name.trim() || !formData.prefix.trim()) {
-        toast({ title: "Erro", description: "Nome e Prefixo são obrigatórios.", variant: "destructive" });
+    if (!formData.name.trim() || !formData.categoryId) {
+        toast({ title: "Erro", description: "Nome e Categoria são obrigatórios.", variant: "destructive" });
         return;
     }
 
@@ -78,10 +78,10 @@ export function TicketTypeForm({
   };
 
   const isEditMode = !!initialData;
-  const dialogTitle = isEditMode ? "Editar Tipo de Senha" : "Novo Tipo de Senha";
+  const dialogTitle = isEditMode ? "Editar Serviço" : "Novo Serviço";
   const dialogDescription = isEditMode 
-    ? "Atualize as informações deste tipo de senha."
-    : "Crie um novo tipo de senha para o sistema.";
+    ? "Atualize as informações deste serviço."
+    : "Crie um novo serviço de atendimento.";
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
@@ -94,23 +94,26 @@ export function TicketTypeForm({
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="name" className="text-right">Nome</Label>
-            <Input id="name" name="name" value={formData.name} onChange={handleChange} className="col-span-3" placeholder="Ex: Atendimento Prioritário" />
+            <Input id="name" name="name" value={formData.name} onChange={handleChange} className="col-span-3" placeholder="Ex: Abertura de Conta" />
           </div>
-          <div className="grid grid-cols-4 items-start gap-4">
-            <Label htmlFor="description" className="text-right pt-2">Descrição</Label>
-            <Textarea id="description" name="description" value={formData.description} onChange={handleChange} className="col-span-3" placeholder="Ex: Para idosos, gestantes, etc." />
-          </div>
-           <div className="grid grid-cols-4 items-center gap-4">
+          <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="icon" className="text-right">Ícone</Label>
             <Input id="icon" name="icon" value={formData.icon} onChange={handleChange} className="col-span-3" placeholder="Nome do ícone Lucide" />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="prefix" className="text-right">Prefixo</Label>
-            <Input id="prefix" name="prefix" value={formData.prefix} onChange={handleChange} className="col-span-3" placeholder="Ex: P (só uma letra)" maxLength={1} />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="priorityWeight" className="text-right">Peso da Prioridade</Label>
-            <Input id="priorityWeight" name="priorityWeight" type="number" value={formData.priorityWeight} onChange={handleChange} className="col-span-3" placeholder="Ex: 10 (maior = mais prioritário)" />
+            <Label htmlFor="categoryId" className="text-right">Categoria</Label>
+            <Select name="categoryId" value={formData.categoryId} onValueChange={handleSelectChange}>
+              <SelectTrigger className="col-span-3">
+                <SelectValue placeholder="Selecione uma categoria" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
         <DialogFooter>

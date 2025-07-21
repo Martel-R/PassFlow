@@ -2,6 +2,9 @@
 import {
   Card,
   CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,42 +15,39 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Edit } from "lucide-react";
 import { getCategories, addCategory, updateCategory, deleteCategory } from "@/lib/db";
 import { CategoryForm } from "./category-form";
 import { DeleteCategoryDialog } from "./delete-category-dialog";
 import { revalidatePath } from "next/cache";
 import type { Category } from "@/lib/types";
+import { DynamicIcon } from "@/components/passflow/dynamic-icon";
 
 export default async function AdminCategoriesPage() {
   const categories = await getCategories();
 
-  async function handleAddCategory(name: string) {
+  async function handleFormAction(formData: FormData) {
     "use server";
-    try {
-      await addCategory(name);
-      revalidatePath("/admin/categories");
-      revalidatePath("/get-ticket");
-      return { success: true, message: "Categoria adicionada com sucesso!" };
-    } catch (error) {
-      const message = error instanceof Error && error.message.includes('UNIQUE constraint failed')
-        ? "Já existe uma categoria com este nome."
-        : "Erro ao adicionar categoria.";
-      return { success: false, message };
-    }
-  }
+    const name = formData.get("name") as string;
+    const icon = formData.get("icon") as string;
+    const id = formData.get("id") as string | undefined;
 
-  async function handleUpdateCategory(id: string, name: string) {
-    "use server";
-     try {
-      await updateCategory(id, name);
-      revalidatePath("/admin/categories");
-      revalidatePath("/get-ticket");
-       return { success: true, message: "Categoria atualizada com sucesso!" };
+    try {
+      if (id) {
+        await updateCategory(id, name, icon);
+        revalidatePath("/admin/categories");
+        revalidatePath("/get-ticket");
+        return { success: true, message: "Categoria atualizada com sucesso!" };
+      } else {
+        await addCategory(name, icon);
+        revalidatePath("/admin/categories");
+        revalidatePath("/get-ticket");
+        return { success: true, message: "Categoria adicionada com sucesso!" };
+      }
     } catch (error) {
       const message = error instanceof Error && error.message.includes('UNIQUE constraint failed')
         ? "Já existe uma categoria com este nome."
-        : "Erro ao atualizar categoria.";
+        : "Erro ao salvar categoria.";
       return { success: false, message };
     }
   }
@@ -77,12 +77,7 @@ export default async function AdminCategoriesPage() {
             Defina as categorias para organizar os tipos de atendimento.
           </p>
         </div>
-        <CategoryForm 
-          formAction={handleAddCategory}
-          buttonTitle="Adicionar Categoria"
-          dialogTitle="Nova Categoria"
-          dialogDescription="Crie uma nova categoria para seus serviços."
-        >
+        <CategoryForm formAction={handleFormAction}>
           <Button>
             <PlusCircle className="mr-2 h-4 w-4" />
             Adicionar Categoria
@@ -90,10 +85,18 @@ export default async function AdminCategoriesPage() {
         </CategoryForm>
       </div>
       <Card>
+         <CardHeader>
+            <CardTitle>Categorias Cadastradas</CardTitle>
+            <CardDescription>
+                Configure as categorias para agrupar os serviços de atendimento.
+                Use nomes de ícones da biblioteca <a href="https://lucide.dev/icons/" target="_blank" rel="noopener noreferrer" className="text-primary underline">Lucide</a>.
+            </CardDescription>
+        </CardHeader>
         <CardContent className="mt-6">
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-[80px]">Ícone</TableHead>
                 <TableHead>Nome da Categoria</TableHead>
                 <TableHead className="w-[180px] text-right">Ações</TableHead>
               </TableRow>
@@ -101,15 +104,20 @@ export default async function AdminCategoriesPage() {
             <TableBody>
               {categories.length > 0 ? categories.map((category: Category) => (
                 <TableRow key={category.id}>
+                  <TableCell>
+                    <DynamicIcon name={category.icon} className="h-6 w-6" />
+                  </TableCell>
                   <TableCell className="font-medium">{category.name}</TableCell>
                   <TableCell className="text-right">
                     <CategoryForm 
-                       formAction={handleUpdateCategory}
-                       buttonTitle="Editar"
-                       dialogTitle="Editar Categoria"
-                       dialogDescription="Atualize o nome desta categoria."
+                       formAction={handleFormAction}
                        initialData={category}
-                    />
+                    >
+                       <Button variant="ghost" size="icon">
+                         <Edit className="h-4 w-4" />
+                         <span className="sr-only">Editar</span>
+                       </Button>
+                    </CategoryForm>
                     <DeleteCategoryDialog 
                       category={category}
                       deleteAction={handleDeleteCategory}
@@ -118,7 +126,7 @@ export default async function AdminCategoriesPage() {
                 </TableRow>
               )) : (
                 <TableRow>
-                    <TableCell colSpan={2} className="h-24 text-center">
+                    <TableCell colSpan={3} className="h-24 text-center">
                         Nenhuma categoria encontrada.
                     </TableCell>
                 </TableRow>

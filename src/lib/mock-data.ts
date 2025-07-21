@@ -2,17 +2,17 @@
 import type { Service, Counter, Category, User, TicketType } from "./types";
 
 export const mockCategories: Category[] = [
-  { id: "cat-1", name: "Atendimento Geral" },
-  { id: "cat-2", name: "Serviços de Caixa" },
-  { id: "cat-3", name: "Gerência" },
+  { id: "cat-1", name: "Atendimento Geral", icon: "Users" },
+  { id: "cat-2", name: "Serviços de Caixa", icon: "Banknote" },
+  { id: "cat-3", name: "Gerência", icon: "Briefcase" },
 ];
 
 export const mockServices: Service[] = [
-  { id: "1", name: "Abertura de Conta", categoryId: "cat-1" },
-  { id: "2", name: "Informações e Consultas", categoryId: "cat-1" },
-  { id: "3", name: "Pagamento de Contas", categoryId: "cat-2" },
-  { id: "4", name: "Depósitos e Saques", categoryId: "cat-2" },
-  { id: "5", name: "Falar com o Gerente", categoryId: "cat-3" },
+  { id: "1", name: "Abertura de Conta", categoryId: "cat-1", icon: "FilePlus" },
+  { id: "2", name: "Informações e Consultas", categoryId: "cat-1", icon: "Info" },
+  { id: "3", name: "Pagamento de Contas", categoryId: "cat-2", icon: "DollarSign" },
+  { id: "4", name: "Depósitos e Saques", categoryId: "cat-2", icon: "Landmark" },
+  { id: "5", name: "Falar com o Gerente", categoryId: "cat-3", icon: "User" },
 ];
 
 export const mockCounters: Counter[] = [
@@ -30,6 +30,6 @@ export const mockUsers: User[] = [
 ];
 
 export const mockTicketTypes: TicketType[] = [
-    { id: "tt-1", name: "Atendimento Normal", description: "Para atendimento geral sem prioridade legal.", prefix: "G", priorityWeight: 1 },
-    { id: "tt-2", name: "Atendimento Prioritário", description: "Para idosos, gestantes, pessoas com deficiência, etc.", prefix: "P", priorityWeight: 10 },
+    { id: "tt-1", name: "Atendimento Normal", description: "Para atendimento geral sem prioridade legal.", prefix: "G", priorityWeight: 1, icon: "User" },
+    { id: "tt-2", name: "Atendimento Prioritário", description: "Para idosos, gestantes, pessoas com deficiência, etc.", prefix: "P", priorityWeight: 10, icon: "Heart" },
 ];

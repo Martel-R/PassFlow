@@ -20,13 +20,15 @@ function initDb() {
   db.exec(`
     CREATE TABLE IF NOT EXISTS categories (
       id TEXT PRIMARY KEY,
-      name TEXT NOT NULL UNIQUE
+      name TEXT NOT NULL UNIQUE,
+      icon TEXT NOT NULL DEFAULT 'Box'
     );
 
     CREATE TABLE IF NOT EXISTS services (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       category_id TEXT NOT NULL,
+      icon TEXT NOT NULL DEFAULT 'Box',
       FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE RESTRICT
     );
 
@@ -48,7 +50,8 @@ function initDb() {
       name TEXT NOT NULL UNIQUE,
       description TEXT,
       prefix TEXT NOT NULL UNIQUE,
-      priority_weight INTEGER NOT NULL
+      priority_weight INTEGER NOT NULL,
+      icon TEXT NOT NULL DEFAULT 'Box'
     );
 
     CREATE TABLE IF NOT EXISTS tickets (
@@ -81,41 +84,17 @@ function initDb() {
       value TEXT
     );
   `);
-  
-  // Drop prefix from services if it exists
-  try {
-      db.prepare('SELECT prefix FROM services LIMIT 1').get();
-      // If the above does not throw, the column exists. We need to recreate the table.
-      console.log("Legacy `services` table found. Migrating...");
-      db.exec('PRAGMA foreign_keys=off;');
-      db.exec(`
-        CREATE TABLE services_new (
-            id TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
-            category_id TEXT NOT NULL,
-            FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE RESTRICT
-        );
-        INSERT INTO services_new (id, name, category_id) SELECT id, name, category_id FROM services;
-        DROP TABLE services;
-        ALTER TABLE services_new RENAME TO services;
-      `);
-       db.exec('PRAGMA foreign_keys=on;');
-       console.log("Migration complete.");
-  } catch (e) {
-      // Column does not exist, schema is up to date.
-  }
-
 
   const categoryCount = db.prepare('SELECT COUNT(*) as count FROM categories').get() as { count: number };
   if (categoryCount.count === 0) {
-    const insertCategory = db.prepare('INSERT INTO categories (id, name) VALUES (?, ?)');
-    mockCategories.forEach(cat => insertCategory.run(cat.id, cat.name));
+    const insertCategory = db.prepare('INSERT INTO categories (id, name, icon) VALUES (?, ?, ?)');
+    mockCategories.forEach(cat => insertCategory.run(cat.id, cat.name, cat.icon));
   }
 
   const serviceCount = db.prepare('SELECT COUNT(*) as count FROM services').get() as { count: number };
   if (serviceCount.count === 0) {
-    const insertService = db.prepare('INSERT INTO services (id, name, category_id) VALUES (?, ?, ?)');
-    mockServices.forEach(srv => insertService.run(srv.id, srv.name, srv.categoryId));
+    const insertService = db.prepare('INSERT INTO services (id, name, category_id, icon) VALUES (?, ?, ?, ?)');
+    mockServices.forEach(srv => insertService.run(srv.id, srv.name, srv.categoryId, srv.icon));
   }
   
   const counterCount = db.prepare('SELECT COUNT(*) as count FROM counters').get() as { count: number };
@@ -139,8 +118,8 @@ function initDb() {
   
   const ticketTypeCount = db.prepare('SELECT COUNT(*) as count FROM ticket_types').get() as { count: number };
   if (ticketTypeCount.count === 0) {
-    const insertTicketType = db.prepare('INSERT INTO ticket_types (id, name, description, prefix, priority_weight) VALUES (?, ?, ?, ?, ?)');
-    mockTicketTypes.forEach(tt => insertTicketType.run(tt.id, tt.name, tt.description, tt.prefix, tt.priorityWeight));
+    const insertTicketType = db.prepare('INSERT INTO ticket_types (id, name, description, prefix, priority_weight, icon) VALUES (?, ?, ?, ?, ?, ?)');
+    mockTicketTypes.forEach(tt => insertTicketType.run(tt.id, tt.name, tt.description, tt.prefix, tt.priorityWeight, tt.icon));
   }
 
 
@@ -154,19 +133,13 @@ function initDb() {
   }
 }
 
-// Check if 'service_name' column exists and add it if not
+// Check if columns exist and add them if not
 function migrateDb() {
-    try {
-        db.prepare('SELECT service_name FROM tickets LIMIT 1').get();
-    } catch (e) {
-        db.exec('ALTER TABLE tickets ADD COLUMN service_name TEXT');
-    }
-    
-    try {
-        db.prepare('SELECT priority_weight FROM tickets LIMIT 1').get();
-    } catch(e) {
-        db.exec('ALTER TABLE tickets ADD COLUMN priority_weight INTEGER NOT NULL DEFAULT 1');
-    }
+    try { db.prepare('SELECT service_name FROM tickets LIMIT 1').get(); } catch (e) { db.exec('ALTER TABLE tickets ADD COLUMN service_name TEXT'); }
+    try { db.prepare('SELECT priority_weight FROM tickets LIMIT 1').get(); } catch(e) { db.exec('ALTER TABLE tickets ADD COLUMN priority_weight INTEGER NOT NULL DEFAULT 1'); }
+    try { db.prepare('SELECT icon FROM categories LIMIT 1').get(); } catch (e) { db.exec("ALTER TABLE categories ADD COLUMN icon TEXT NOT NULL DEFAULT 'Box'"); }
+    try { db.prepare('SELECT icon FROM services LIMIT 1').get(); } catch (e) { db.exec("ALTER TABLE services ADD COLUMN icon TEXT NOT NULL DEFAULT 'Box'"); }
+    try { db.prepare('SELECT icon FROM ticket_types LIMIT 1').get(); } catch (e) { db.exec("ALTER TABLE ticket_types ADD COLUMN icon TEXT NOT NULL DEFAULT 'Box'"); }
 }
 
 
@@ -207,18 +180,18 @@ export async function updateSettings(settings: Record<string, string>): Promise<
 
 // Service Functions
 export async function getServices(): Promise<Service[]> {
-  const rows = db.prepare('SELECT s.id, s.name, s.category_id as categoryId FROM services s').all() as any[];
+  const rows = db.prepare('SELECT s.id, s.name, s.category_id as categoryId, s.icon FROM services s').all() as any[];
   return rows;
 }
 
 export async function getServicesByCategory(categoryId: string): Promise<Service[]> {
-  const rows = db.prepare('SELECT id, name, category_id as categoryId FROM services WHERE category_id = ?').all(categoryId) as any[];
+  const rows = db.prepare('SELECT id, name, category_id as categoryId, icon FROM services WHERE category_id = ?').all(categoryId) as any[];
   return rows;
 }
 
 export async function getServicesForCounter(counterId: string): Promise<Service[]> {
     const rows = db.prepare(`
-        SELECT s.id, s.name, s.category_id as categoryId
+        SELECT s.id, s.name, s.category_id as categoryId, s.icon
         FROM services s
         JOIN counter_categories cc ON s.category_id = cc.category_id
         WHERE cc.counter_id = ?
@@ -226,24 +199,36 @@ export async function getServicesForCounter(counterId: string): Promise<Service[
     return rows;
 }
 
+export async function addService(data: Omit<Service, 'id'>): Promise<void> {
+  const id = `srv-${Date.now()}`;
+  db.prepare('INSERT INTO services (id, name, category_id, icon) VALUES (?, ?, ?, ?)').run(id, data.name, data.categoryId, data.icon);
+}
+
+export async function updateService(id: string, data: Omit<Service, 'id'>): Promise<void> {
+  db.prepare('UPDATE services SET name = ?, category_id = ?, icon = ? WHERE id = ?').run(data.name, data.categoryId, data.icon, id);
+}
+
+export async function deleteService(id: string): Promise<void> {
+  db.prepare('DELETE FROM services WHERE id = ?').run(id);
+}
+
 
 // Category Functions
 export async function getCategories(): Promise<Category[]> {
-  const rows = db.prepare('SELECT id, name FROM categories ORDER BY name ASC').all() as any[];
+  const rows = db.prepare('SELECT id, name, icon FROM categories ORDER BY name ASC').all() as any[];
   return rows;
 }
 
-export async function addCategory(name: string): Promise<void> {
+export async function addCategory(name: string, icon: string): Promise<void> {
   const id = `cat-${Date.now()}`;
-  db.prepare('INSERT INTO categories (id, name) VALUES (?, ?)').run(id, name);
+  db.prepare('INSERT INTO categories (id, name, icon) VALUES (?, ?, ?)').run(id, name, icon);
 }
 
-export async function updateCategory(id: string, name: string): Promise<void> {
-  db.prepare('UPDATE categories SET name = ? WHERE id = ?').run(name, id);
+export async function updateCategory(id: string, name: string, icon: string): Promise<void> {
+  db.prepare('UPDATE categories SET name = ?, icon = ? WHERE id = ?').run(name, icon, id);
 }
 
 export async function deleteCategory(id: string): Promise<void> {
-  // Foreign key constraints will prevent deletion if the category is in use
   db.prepare('DELETE FROM categories WHERE id = ?').run(id);
 }
 
@@ -348,7 +333,7 @@ export async function resetTickets(): Promise<{ count: number }> {
 
 
 export async function getServiceById(id: string): Promise<Service | null> {
-    const row = db.prepare('SELECT id, name, category_id as categoryId FROM services WHERE id = ?').get(id) as any;
+    const row = db.prepare('SELECT id, name, category_id as categoryId, icon FROM services WHERE id = ?').get(id) as any;
     return row || null;
 }
 
@@ -376,19 +361,19 @@ export async function getUserByUsername(username: string): Promise<User | null> 
 
 // Ticket Type Functions
 export async function getTicketTypes(): Promise<TicketType[]> {
-  const rows = db.prepare('SELECT id, name, description, prefix, priority_weight as priorityWeight FROM ticket_types ORDER BY priority_weight DESC').all() as any[];
+  const rows = db.prepare('SELECT id, name, description, prefix, priority_weight as priorityWeight, icon FROM ticket_types ORDER BY priority_weight DESC').all() as any[];
   return rows;
 }
 
 export async function addTicketType(data: Omit<TicketType, 'id'>): Promise<void> {
   const id = `tt-${Date.now()}`;
-  db.prepare('INSERT INTO ticket_types (id, name, description, prefix, priority_weight) VALUES (?, ?, ?, ?, ?)')
-    .run(id, data.name, data.description, data.prefix, data.priorityWeight);
+  db.prepare('INSERT INTO ticket_types (id, name, description, prefix, priority_weight, icon) VALUES (?, ?, ?, ?, ?, ?)')
+    .run(id, data.name, data.description, data.prefix, data.priorityWeight, data.icon);
 }
 
 export async function updateTicketType(id: string, data: Omit<TicketType, 'id'>): Promise<void> {
-  db.prepare('UPDATE ticket_types SET name = ?, description = ?, prefix = ?, priority_weight = ? WHERE id = ?')
-    .run(data.name, data.description, data.prefix, data.priorityWeight, id);
+  db.prepare('UPDATE ticket_types SET name = ?, description = ?, prefix = ?, priority_weight = ?, icon = ? WHERE id = ?')
+    .run(data.name, data.description, data.prefix, data.priorityWeight, data.icon, id);
 }
 
 export async function deleteTicketType(id: string): Promise<void> {

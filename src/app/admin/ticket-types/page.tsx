@@ -21,6 +21,7 @@ import { TicketTypeForm } from "./ticket-type-form";
 import { DeleteTicketTypeDialog } from "./delete-ticket-type-dialog";
 import { revalidatePath } from "next/cache";
 import type { TicketType } from "@/lib/types";
+import { DynamicIcon } from "@/components/passflow/dynamic-icon";
 
 export default async function AdminTicketTypesPage() {
   const ticketTypes = await getTicketTypes();
@@ -81,12 +82,15 @@ export default async function AdminTicketTypesPage() {
       <Card>
         <CardHeader>
             <CardTitle>Tipos de Senha Cadastrados</CardTitle>
-            <CardDescription>Maior peso significa maior prioridade na fila.</CardDescription>
+            <CardDescription>
+                Maior peso significa maior prioridade na fila. Use nomes de ícones da biblioteca <a href="https://lucide.dev/icons/" target="_blank" rel="noopener noreferrer" className="text-primary underline">Lucide</a>.
+            </CardDescription>
         </CardHeader>
         <CardContent className="mt-6">
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-[80px]">Ícone</TableHead>
                 <TableHead>Nome</TableHead>
                 <TableHead>Descrição</TableHead>
                 <TableHead className="w-[100px] text-center">Prefixo</TableHead>
@@ -97,6 +101,9 @@ export default async function AdminTicketTypesPage() {
             <TableBody>
               {ticketTypes.length > 0 ? ticketTypes.map((tt: TicketType) => (
                 <TableRow key={tt.id}>
+                  <TableCell>
+                    <DynamicIcon name={tt.icon} className="h-6 w-6" />
+                  </TableCell>
                   <TableCell className="font-medium">{tt.name}</TableCell>
                    <TableCell className="text-muted-foreground">{tt.description}</TableCell>
                    <TableCell className="text-center font-mono">{tt.prefix}</TableCell>
@@ -119,7 +126,7 @@ export default async function AdminTicketTypesPage() {
                 </TableRow>
               )) : (
                 <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center">
+                    <TableCell colSpan={6} className="h-24 text-center">
                         Nenhum tipo de senha encontrado.
                     </TableCell>
                 </TableRow>
