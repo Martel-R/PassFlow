@@ -19,12 +19,14 @@ import { Logo } from "@/components/layout/logo";
 import { Separator } from "@/components/ui/separator";
 import { MonitorPlay, Ticket as TicketIcon, UserCog } from "lucide-react";
 import Link from "next/link";
+import { usePassFlowActions } from "@/lib/store";
 
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const { setSession } = usePassFlowActions();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,13 +39,15 @@ export default function LoginPage() {
 
     const data = await res.json();
 
-    if (res.ok) {
+    if (res.ok && data.success) {
+        setSession(data.session);
         toast({
             title: "Login bem-sucedido!",
             description: `Redirecionando para o painel de ${data.role === 'admin' ? 'administrador' : 'atendente'}.`,
         });
+        // router.push is sufficient, middleware will handle the rest
         router.push(data.role === "admin" ? "/admin" : "/clerk");
-        router.refresh(); // Important to re-evaluate middleware
+        router.refresh();
     } else {
          toast({
             title: "Erro de login",
@@ -100,17 +104,6 @@ export default function LoginPage() {
           <div className="space-y-4 text-center">
              <p className="text-sm text-muted-foreground">Ou acesse diretamente:</p>
              <div className="flex flex-col gap-2">
-                <Button variant="secondary" asChild>
-                    <Link href="/clerk">
-                        Acessar Painel de Atendente
-                    </Link>
-                </Button>
-                <Button variant="secondary" asChild>
-                    <Link href="/admin">
-                         <UserCog />
-                         Acessar Painel de Administrador
-                    </Link>
-                </Button>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <Button variant="outline" asChild>
                         <Link href="/get-ticket">

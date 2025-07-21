@@ -174,11 +174,19 @@ export function ClerkDashboard() {
   };
 
   if (!session) {
-      return <div>Carregando sessão...</div>
+      return (
+        <div className="flex items-center justify-center h-full">
+            <p>Carregando sessão...</p>
+        </div>
+      )
   }
 
   if (!clerkCounter) {
-    return <div>Carregando informações do balcão...</div>
+    return (
+        <div className="flex items-center justify-center h-full">
+            <p>Carregando informações do balcão...</p>
+        </div>
+    )
   }
 
   return (
