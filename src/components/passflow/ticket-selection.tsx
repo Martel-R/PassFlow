@@ -74,8 +74,8 @@ export function TicketSelection() {
   const handlePrint = () => {
     // Flush sync ensures the state is updated and rendered before the print dialog opens
     flushSync(() => {
-        // The state update is already done, we just need to ensure it's rendered.
-        // This is a bit of a hack, but it forces the render cycle.
+        // The state update that sets the ticket data has already been called.
+        // `flushSync` forces React to render that update synchronously.
     });
     window.print();
   };
