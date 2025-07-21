@@ -12,20 +12,44 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
+  DialogHeader,
 } from "@/components/ui/dialog";
 import { useCalledTicket, useCallHistory, useOrganizationName, useOrganizationLogo } from "@/lib/store";
-import { Volume2, Clock } from "lucide-react";
+import { Volume2, Clock, Youtube } from "lucide-react";
 import Image from "next/image";
 import { Logo } from "../layout/logo";
 
 interface DisplayScreenProps {
   organizationName?: string | null;
   advertisementBanner?: string | null;
+  advertisementVideoUrl?: string | null;
 }
+
+function getYouTubeEmbedUrl(url: string | null): string | null {
+  if (!url) return null;
+  let videoId: string | null = null;
+  try {
+    const urlObj = new URL(url);
+    if (urlObj.hostname === "youtu.be") {
+      videoId = urlObj.pathname.slice(1);
+    } else if (urlObj.hostname.includes("youtube.com")) {
+      videoId = urlObj.searchParams.get("v");
+    }
+  } catch (e) {
+    return null; // Invalid URL
+  }
+  
+  if (videoId) {
+    return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&modestbranding=1&iv_load_policy=3`;
+  }
+  return null;
+}
+
 
 export function DisplayScreen({ 
   organizationName: initialName,
-  advertisementBanner: initialBanner 
+  advertisementBanner: initialBanner,
+  advertisementVideoUrl: initialVideoUrl
 }: DisplayScreenProps) {
   const calledTicket = useCalledTicket();
   const callHistory = useCallHistory();
@@ -36,6 +60,7 @@ export function DisplayScreen({
   const organizationName = useOrganizationName() ?? initialName;
   const organizationLogo = useOrganizationLogo();
   const bannerSrc = initialBanner || "https://placehold.co/1200x800.png";
+  const videoEmbedUrl = getYouTubeEmbedUrl(initialVideoUrl);
 
   useEffect(() => {
     if (calledTicket) {
@@ -53,6 +78,33 @@ export function DisplayScreen({
     }
   }, [calledTicket]); 
 
+  const renderMedia = () => {
+    if (videoEmbedUrl) {
+      return (
+        <iframe
+          src={videoEmbedUrl}
+          title="YouTube video player"
+          frameBorder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          className="w-full h-full object-cover rounded-b-lg"
+          key={videoEmbedUrl}
+        ></iframe>
+      );
+    }
+
+    return (
+      <Image 
+          src={bannerSrc}
+          alt="Advertisement"
+          fill
+          data-ai-hint="advertisement marketing"
+          className="object-cover rounded-b-lg"
+          key={bannerSrc} // Re-render if banner source changes
+        />
+    );
+  };
+
   return (
     <>
       <div className="flex flex-col lg:flex-row h-full w-full">
@@ -65,17 +117,13 @@ export function DisplayScreen({
           <main className="flex-1 flex flex-col items-center justify-center">
              <Card className="w-full h-full shadow-lg">
                 <CardHeader>
-                  <CardTitle className="text-xl md:text-2xl">Publicidade</CardTitle>
+                  <CardTitle className="text-xl md:text-2xl flex items-center gap-2">
+                    {videoEmbedUrl ? <Youtube /> : null}
+                    Publicidade
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="h-full p-0 relative">
-                  <Image 
-                      src={bannerSrc}
-                      alt="Advertisement"
-                      fill
-                      data-ai-hint="advertisement marketing"
-                      className="object-cover rounded-b-lg"
-                      key={bannerSrc} // Re-render if banner source changes
-                    />
+                  {renderMedia()}
                 </CardContent>
               </Card>
           </main>
