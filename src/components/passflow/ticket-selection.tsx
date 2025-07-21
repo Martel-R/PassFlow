@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Card,
   CardContent,
@@ -19,11 +19,12 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { getServicesByCategory, getCategories, addTicket as dbAddTicket, getTicketTypes } from "@/lib/db";
-import { Ticket as TicketIcon, ArrowRight, ChevronLeft } from "lucide-react";
+import { Ticket as TicketIcon, ArrowRight, ChevronLeft, Printer } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { usePassFlowActions } from "@/lib/store";
 import type { Service, Ticket, Category, TicketType } from "@/lib/types";
 import { DynamicIcon } from "./dynamic-icon";
+import { PrintableTicket } from "./printable-ticket";
 
 type Step = 'category' | 'service' | 'type';
 
@@ -57,6 +58,7 @@ export function TicketSelection() {
 
   const { toast } = useToast();
   const { refreshTickets } = usePassFlowActions();
+  const printableTicketRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -68,15 +70,9 @@ export function TicketSelection() {
     fetchInitialData();
   }, []);
 
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (generatedTicket) {
-      timer = setTimeout(() => {
-        handleCloseDialog();
-      }, 5000); 
-    }
-    return () => clearTimeout(timer);
-  }, [generatedTicket]);
+  const handlePrint = () => {
+    window.print();
+  };
 
   const handleCategoryClick = async (category: Category) => {
     const dbServices = await getServicesByCategory(category.id);
@@ -222,6 +218,14 @@ export function TicketSelection() {
       
       {renderStepContent()}
 
+       <div className="hidden">
+          <PrintableTicket
+            ref={printableTicketRef}
+            ticket={generatedTicket}
+            service={selectedService}
+          />
+       </div>
+
       <Dialog open={isDialogOpen} onOpenChange={(isOpen) => !isOpen && handleCloseDialog()}>
         <DialogContent className="sm:max-w-md text-center">
           <DialogHeader>
@@ -230,16 +234,20 @@ export function TicketSelection() {
             </div>
             <DialogTitle className="text-2xl">Senha Gerada!</DialogTitle>
             <DialogDescription>
-              Aguarde para ser chamado. Este aviso fechará automaticamente.
+              Aguarde para ser chamado.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <p className="text-5xl font-bold text-primary">{generatedTicket?.number}</p>
             <p className="text-muted-foreground mt-2">{selectedService?.name}</p>
           </div>
-          <DialogFooter className="sm:justify-center">
-            <Button type="button" onClick={handleCloseDialog}>
+          <DialogFooter className="sm:justify-center flex-row gap-2">
+            <Button type="button" variant="outline" onClick={handleCloseDialog}>
               Fechar
+            </Button>
+            <Button type="button" onClick={handlePrint}>
+              <Printer className="mr-2 h-4 w-4" />
+              Imprimir Senha
             </Button>
           </DialogFooter>
         </DialogContent>
