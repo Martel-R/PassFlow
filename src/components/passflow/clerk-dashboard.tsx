@@ -56,6 +56,11 @@ export function ClerkDashboard() {
   const [clerkCounter, setClerkCounter] = useState<Counter | null>(null);
   const { toast } = useToast();
   
+  // Fetch initial data on component mount
+  useEffect(() => {
+    refreshTickets();
+  }, [refreshTickets]);
+
   useEffect(() => {
     const fetchCounter = async () => {
       if (session?.counterId) {
@@ -116,7 +121,7 @@ export function ClerkDashboard() {
       
       await updateTicketStatus(nextTicket.id, 'in-progress', clerkCounter.id);
       callTicket(updatedTicket, clerkCounter.name);
-      await refreshTickets();
+      await refreshTickets(true); // pass true to notify other tabs
 
       toast({
         title: "Chamando senha",
@@ -160,7 +165,7 @@ export function ClerkDashboard() {
       const ticketTags = tags.split(",").map(t => t.trim()).filter(Boolean);
       await finalizeTicket(activeTicket.id, notes, ticketTags);
       
-      await refreshTickets();
+      await refreshTickets(true); // pass true to notify other tabs
 
       setActiveTicket(null);
       setFinalizeModalOpen(false);

@@ -18,7 +18,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { getServices, addTicket as dbAddTicket, getCategories } from "@/lib/db";
+import { getServices, addTicket as dbAddTicket } from "@/lib/db";
 import { Ticket as TicketIcon, ArrowRight, UserCheck, Briefcase } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { usePassFlowActions } from "@/lib/store";
@@ -59,7 +59,7 @@ export function TicketSelection() {
       const newTicket = await dbAddTicket(service);
       setGeneratedTicket(newTicket);
       setSelectedService(service);
-      await refreshTickets();
+      await refreshTickets(true); // pass true to notify other tabs
 
       toast({
         title: "Senha gerada com sucesso!",

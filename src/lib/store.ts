@@ -7,6 +7,13 @@ import { getTickets } from './db';
 import { useEffect, useRef } from 'react';
 import Cookies from 'js-cookie';
 
+// --- Broadcast Channel for cross-tab sync ---
+let channel: BroadcastChannel | null = null;
+if (typeof window !== 'undefined') {
+    channel = new BroadcastChannel('passflow-sync');
+}
+// ---
+
 interface Session {
     userId: string;
     name: string;
@@ -21,15 +28,16 @@ interface InitializeParams {
 
 // This custom hook ensures that the store is initialized only once
 export function useInitializeStore({ organizationName, organizationLogo }: InitializeParams) {
-    const { initialize } = usePassFlowActions();
+    const { initialize, listenToBroadcast } = usePassFlowActions();
     const initialized = useRef(false);
 
     useEffect(() => {
         if (!initialized.current) {
             initialize({ organizationName, organizationLogo });
+            listenToBroadcast();
             initialized.current = true;
         }
-    }, [initialize, organizationName, organizationLogo]);
+    }, [initialize, listenToBroadcast, organizationName, organizationLogo]);
 };
 
 
@@ -60,10 +68,11 @@ type PassFlowState = {
   organizationLogo: string | null;
   actions: {
     initialize: (params: InitializeParams) => Promise<void>;
-    refreshTickets: () => Promise<void>;
+    refreshTickets: (notify?: boolean) => Promise<void>;
     callTicket: (ticket: Ticket, counterName: string) => void;
     setSession: (session: Session | null) => void;
     clearSession: () => void;
+    listenToBroadcast: () => void;
   };
 };
 
@@ -86,10 +95,13 @@ const usePassFlowStore = create<PassFlowState>((set, get) => ({
             set({ organizationName: organizationName || null, organizationLogo: organizationLogo || null });
         }
     },
-    refreshTickets: async () => {
+    refreshTickets: async (notify = false) => {
         try {
             const tickets = await getTickets();
             set({ tickets });
+            if (notify && channel) {
+                channel.postMessage({ type: 'tickets_updated' });
+            }
         } catch (error) {
             console.error("Failed to refresh tickets from DB:", error);
         }
@@ -106,9 +118,29 @@ const usePassFlowStore = create<PassFlowState>((set, get) => ({
             ? [newCall, ...state.callHistory].slice(0, 10) 
             : state.callHistory,
       }));
+       if (channel) {
+          channel.postMessage({ type: 'ticket_called', payload: newCall });
+       }
     },
     setSession: (session) => set({ session }),
     clearSession: () => set({ session: null }),
+    listenToBroadcast: () => {
+        if (channel) {
+            channel.onmessage = async (event) => {
+                const { type, payload } = event.data;
+                if (type === 'ticket_called') {
+                     set((state) => ({
+                        calledTicket: payload,
+                        callHistory: [payload, ...state.callHistory].slice(0, 10),
+                    }));
+                }
+                if (type === 'tickets_updated') {
+                    // Another tab signaled an update, so this tab should refresh its data
+                    await get().actions.refreshTickets();
+                }
+            };
+        }
+    },
   },
 }));
 
