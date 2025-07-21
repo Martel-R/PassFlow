@@ -3,38 +3,25 @@
 
 import { usePassFlowActions } from "@/lib/store";
 import { useRef, useEffect } from "react";
-import Cookies from "js-cookie";
+import type { Session } from "@/lib/store";
 
 interface InitializeParams {
     organizationName?: string | null;
     organizationLogo?: string | null;
+    initialSession: Session | null;
 }
 
-export function StoreInitializer({ organizationName, organizationLogo }: InitializeParams) {
-    const { initialize, listenToBroadcast, setSession } = usePassFlowActions();
+export function StoreInitializer({ organizationName, organizationLogo, initialSession }: InitializeParams) {
+    const { initialize, listenToBroadcast } = usePassFlowActions();
     const initialized = useRef(false);
-
-    // Synchronously set session on initial client load
-    if (typeof window !== "undefined" && !initialized.current) {
-         try {
-            const cookie = Cookies.get('auth-session');
-            if (cookie) {
-                const session = JSON.parse(cookie);
-                setSession(session);
-            }
-        } catch (e) {
-            console.error("Failed to parse session cookie", e);
-            setSession(null);
-        }
-    }
 
     useEffect(() => {
         if (!initialized.current) {
-            initialize({ organizationName, organizationLogo });
+            initialize({ organizationName, organizationLogo, initialSession });
             listenToBroadcast();
             initialized.current = true;
         }
-    }, [initialize, listenToBroadcast, organizationName, organizationLogo]);
+    }, [initialize, listenToBroadcast, organizationName, organizationLogo, initialSession]);
 
     return null; // This component doesn't render anything
 };

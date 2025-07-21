@@ -44,11 +44,11 @@ import { Ticket, Counter, Service } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useTickets, usePassFlowActions, useSession } from "@/lib/store";
+import { useTickets, usePassFlowActions, usePassFlowStore } from "@/lib/store";
 
 export function ClerkDashboard() {
   const tickets = useTickets();
-  const session = useSession();
+  const session = usePassFlowStore((state) => state.session);
   const { callTicket, refreshTickets } = usePassFlowActions();
   const [activeTicket, setActiveTicket] = useState<Ticket | null>(null);
   const [isFinalizeModalOpen, setFinalizeModalOpen] = useState(false);
@@ -71,6 +71,7 @@ export function ClerkDashboard() {
         const counter = await getCounterById(session.counterId);
         setClerkCounter(counter);
       } else if (session?.role === 'admin') {
+         // For demo purposes, an admin can act as counter 1
          const counter = await getCounterById("1");
          setClerkCounter(counter);
       }
@@ -131,7 +132,7 @@ export function ClerkDashboard() {
         })
         .find(ticket => ticket); // Find the first one in the sorted list
 
-    if (nextTicket) {
+    if (nextTicket && session) {
       resetServiceTimer();
       const updatedTicket = { ...nextTicket, status: 'in-progress' as const, counter: clerkCounter.name };
       setActiveTicket(updatedTicket);

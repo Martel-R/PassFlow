@@ -4,8 +4,6 @@
 import { create } from 'zustand';
 import { Ticket } from './types';
 import { getTickets } from './db';
-import { useEffect, useRef } from 'react';
-import Cookies from 'js-cookie';
 
 // --- Broadcast Channel for cross-tab sync ---
 let channel: BroadcastChannel | null = null;
@@ -14,7 +12,7 @@ if (typeof window !== 'undefined') {
 }
 // ---
 
-interface Session {
+export interface Session {
     userId: string;
     name: string;
     role: 'admin' | 'clerk';
@@ -24,11 +22,7 @@ interface Session {
 interface InitializeParams {
     organizationName?: string | null;
     organizationLogo?: string | null;
-}
-
-// Hook to get session data from cookie
-export function useSession() {
-    return usePassFlowStore((state) => state.session);
+    initialSession?: Session | null;
 }
 
 // Hook to get organization name from store
@@ -61,7 +55,7 @@ type PassFlowState = {
   };
 };
 
-const usePassFlowStore = create<PassFlowState>((set, get) => ({
+export const usePassFlowStore = create<PassFlowState>((set, get) => ({
   tickets: [],
   calledTicket: null,
   callHistory: [],
@@ -69,14 +63,22 @@ const usePassFlowStore = create<PassFlowState>((set, get) => ({
   organizationName: null,
   organizationLogo: null,
   actions: {
-    initialize: async ({ organizationName, organizationLogo }) => {
+    initialize: async ({ organizationName, organizationLogo, initialSession = null }) => {
         try {
             const tickets = await getTickets();
-            // Session is now set synchronously in StoreInitializer
-            set({ tickets, organizationName: organizationName || null, organizationLogo: organizationLogo || null });
+            set({ 
+                tickets, 
+                organizationName: organizationName || null, 
+                organizationLogo: organizationLogo || null,
+                session: initialSession
+            });
         } catch (error) {
             console.error("Failed to initialize store:", error);
-            set({ organizationName: organizationName || null, organizationLogo: organizationLogo || null });
+            set({ 
+                organizationName: organizationName || null, 
+                organizationLogo: organizationLogo || null,
+                session: initialSession
+            });
         }
     },
     refreshTickets: async (notify = false) => {

@@ -7,6 +7,8 @@ import { getSettings } from '@/lib/db';
 import { CSSProperties } from 'react';
 import { StoreInitializer } from '@/components/layout/store-initializer';
 import { Inter } from 'next/font/google';
+import { cookies } from 'next/headers';
+import type { Session } from '@/lib/store';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -49,11 +51,28 @@ export default async function RootLayout({
     '--background': settings['theme.background'] || '210 20% 95%',
   } as CSSProperties;
 
+  const cookieStore = cookies();
+  const sessionCookie = cookieStore.get('auth-session');
+  let initialSession: Session | null = null;
+  if (sessionCookie) {
+    try {
+      initialSession = JSON.parse(sessionCookie.value);
+    } catch (e) {
+      console.error("Failed to parse session cookie in layout", e);
+      // Invalidate cookie if parsing fails
+      cookieStore.delete('auth-session');
+    }
+  }
+
   return (
     <html lang="en" suppressHydrationWarning style={themeStyle} className={inter.variable}>
       <head />
       <body className="font-body antialiased">
-        <StoreInitializer organizationName={organizationName} organizationLogo={organizationLogo} />
+        <StoreInitializer 
+          organizationName={organizationName} 
+          organizationLogo={organizationLogo}
+          initialSession={initialSession}
+        />
         <AppShell>
           {children}
         </AppShell>

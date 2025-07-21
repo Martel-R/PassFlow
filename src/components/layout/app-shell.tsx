@@ -35,7 +35,7 @@ import {
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { usePassFlowActions, useSession, useOrganizationName, useOrganizationLogo } from "@/lib/store";
+import { usePassFlowActions, usePassFlowStore, useOrganizationName, useOrganizationLogo } from "@/lib/store";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "../ui/button";
 
@@ -89,7 +89,7 @@ export function AppShell({
     children: React.ReactNode, 
 }) {
   const pathname = usePathname();
-  const session = useSession();
+  const session = usePassFlowStore((state) => state.session);
   const organizationName = useOrganizationName();
   const organizationLogo = useOrganizationLogo();
 
