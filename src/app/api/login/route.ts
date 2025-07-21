@@ -20,7 +20,7 @@ export async function POST(request: Request) {
       userId: user.id,
       name: user.name,
       role: user.role, 
-      counterId: user.counter_id,
+      counterId: user.counter_id, // counter_id can be null (for admin)
   };
   
   cookies().set('auth-session', JSON.stringify(sessionData), {

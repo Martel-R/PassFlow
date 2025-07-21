@@ -1,7 +1,8 @@
+
 export type Service = {
   id: string;
   name: string;
-  category: "priority" | "general";
+  category: string;
   prefix: string;
 };
 
@@ -38,6 +39,6 @@ export type User = {
     username: string;
     password?: string; // Not ideal for production, but okay for a prototype
     role: 'admin' | 'clerk';
-    counterId?: string;
+    counter_id?: string;
     counterName?: string;
 };

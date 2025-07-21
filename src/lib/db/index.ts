@@ -106,7 +106,7 @@ function initDb() {
 
   const settingsCount = db.prepare('SELECT COUNT(*) as count FROM settings WHERE key = ?').get('organizationName') as { count: number };
   if (settingsCount.count === 0) {
-      db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('organizationName', 'PassFlow');
+      db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('organizationName', 'Nome da Organização');
   }
 }
 
@@ -279,6 +279,6 @@ export async function getUsers(): Promise<User[]> {
 }
 
 export async function getUserByUsername(username: string): Promise<User | null> {
-    const row = db.prepare('SELECT id, name, username, password, role, counter_id FROM users WHERE username = ?').get(username) as any;
+    const row = db.prepare('SELECT id, name, username, password, role, counter_id FROM users WHERE username = ?').get(username) as User | undefined;
     return row || null;
 }
