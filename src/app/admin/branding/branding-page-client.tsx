@@ -10,37 +10,6 @@ import {
 } from "@/components/ui/card";
 import { BrandingForm } from "./branding-form";
 
-function hslToHex(hslStr: string): string {
-  if (!hslStr || typeof hslStr !== 'string') return "#000000";
-  const match = hslStr.match(/(\d+)\s+(\d+)%\s+(\d+)%/);
-  if (!match) return "#000000";
-  
-  const h = parseInt(match[1], 10);
-  let s = parseInt(match[2], 10);
-  let l = parseInt(match[3], 10);
-
-  s /= 100;
-  l /= 100;
-
-  const c = (1 - Math.abs(2 * l - 1)) * s;
-  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
-  const m = l - c / 2;
-  
-  let r = 0, g = 0, b = 0;
-
-  if (h >= 0 && h < 60) { [r, g, b] = [c, x, 0]; }
-  else if (h >= 60 && h < 120) { [r, g, b] = [x, c, 0]; }
-  else if (h >= 120 && h < 180) { [r, g, b] = [0, c, x]; }
-  else if (h >= 180 && h < 240) { [r, g, b] = [0, x, c]; }
-  else if (h >= 240 && h < 300) { [r, g, b] = [x, 0, c]; }
-  else if (h >= 300 && h < 360) { [r, g, b] = [c, 0, x]; }
-  
-  r = Math.round((r + m) * 255);
-  g = Math.round((g + m) * 255);
-  b = Math.round((b + m) * 255);
-
-  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-}
 
 interface BrandingData {
   name: string;
@@ -58,12 +27,6 @@ interface BrandingPageClientProps {
 
 
 export function BrandingPageClient({ initialData, updateBrandingAction }: BrandingPageClientProps) {
-  const brandingFormInitialData = {
-    ...initialData,
-    primaryColor: hslToHex(initialData.primaryColor),
-    accentColor: hslToHex(initialData.accentColor),
-    backgroundColor: hslToHex(initialData.backgroundColor),
-  };
 
   return (
     <div className="flex-1 space-y-4 p-4 sm:p-8 pt-6">
@@ -86,7 +49,7 @@ export function BrandingPageClient({ initialData, updateBrandingAction }: Brandi
         </CardHeader>
         <CardContent>
           <BrandingForm
-            initialData={brandingFormInitialData}
+            initialData={initialData}
             updateBrandingAction={updateBrandingAction}
           />
         </CardContent>
