@@ -1,0 +1,17 @@
+# Pasta de dependências
+node_modules
+
+# Pasta de build do Next.js
+.next
+
+# Arquivos de log do npm
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Arquivo do banco de dados local
+passflow.db*
+
+# Arquivos do Docker
+Dockerfile
+.dockerignore

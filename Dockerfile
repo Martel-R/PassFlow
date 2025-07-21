@@ -1,54 +1,24 @@
-# Dockerfile for Next.js application
+# 1. Base Image: Use uma imagem oficial do Node.js. Alpine é uma boa escolha por ser leve.
+FROM node:20-alpine AS base
 
-# Stage 1: Install dependencies
-FROM node:18-alpine AS deps
-RUN apk add --no-cache libc6-compat
+# 2. Build Tools: Instale as dependências necessárias para compilar pacotes nativos como `better-sqlite3`.
+RUN apk add --no-cache libc6-compat python3 make g++
+
+# 3. Set Working Directory: Defina o diretório de trabalho dentro do container.
 WORKDIR /app
 
-# Copy package.json and yarn.lock
-COPY package.json yarn.lock* ./
-# If you have a pnpm-lock.yaml, copy it as well
-# COPY pnpm-lock.yaml ./
+# 4. Copy and Install Dependencies: Copie os arquivos de dependência e instale-os.
+# Copiar esses arquivos primeiro aproveita o cache de camadas do Docker.
+COPY package.json ./
+COPY package-lock.json* ./
 
-# Install dependencies
-RUN yarn install --frozen-lockfile
+RUN npm install --production=false
 
-# Stage 2: Build the application
-FROM node:18-alpine AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
+# 5. Copy Application Code: Copie o restante do código da aplicação.
 COPY . .
 
-# Environment variables for the build
-# ENV NEXT_TELEMETRY_DISABLED 1
+# 6. Build the Application: Execute o script de build do Next.js.
+RUN npm run build
 
-RUN yarn build
-
-# Stage 3: Production image
-FROM node:18-alpine AS runner
-WORKDIR /app
-
-ENV NODE_ENV=production
-# Uncomment the following line in case you want to disable telemetry during runtime.
-# ENV NEXT_TELEMETRY_DISABLED 1
-
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
-
-USER nextjs
-
-EXPOSE 3000
-
-ENV PORT 3000
-
-# Next.js collects completely anonymous telemetry data about general usage.
-# Learn more here: https://nextjs.org/telemetry
-# Uncomment the following lines in case you want to disable telemetry.
-# ENV NEXT_TELEMETRY_DISABLED 1
-
-CMD ["yarn", "start"]
+# 7. Start the Application: Configure o comando para iniciar a aplicação quando o container for executado.
+CMD ["npm", "start"]
