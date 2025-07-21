@@ -17,7 +17,6 @@ interface BrandingData {
   accentColor: string;
   backgroundColor: string;
   logo: string | null;
-  advertisementBanner: string | null;
 }
 
 interface BrandingPageClientProps {
@@ -36,7 +35,7 @@ export function BrandingPageClient({ initialData, updateBrandingAction }: Brandi
             Branding Personalizado
           </h2>
           <p className="text-muted-foreground">
-            Ajuste o nome, as cores, o logo e o banner para se adequar à sua marca.
+            Ajuste o nome, as cores e o logo para se adequar à sua marca.
           </p>
         </div>
       </div>
@@ -44,7 +43,7 @@ export function BrandingPageClient({ initialData, updateBrandingAction }: Brandi
         <CardHeader>
           <CardTitle>Identidade da Organização</CardTitle>
           <CardDescription>
-            Atualize o nome, as cores, o logo e o banner do sistema.
+            Atualize o nome, as cores e o logo do sistema.
           </CardDescription>
         </CardHeader>
         <CardContent>

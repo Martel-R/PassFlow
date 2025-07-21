@@ -20,6 +20,7 @@ import {
   UserCog,
   Tags,
   AreaChart,
+  MonitorPlay,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -75,6 +76,18 @@ const adminActions = [
     icon: <Tags className="h-6 w-6" />,
     href: "/admin/ticket-types",
   },
+  {
+    title: "Branding Personalizado",
+    description: "Ajuste o nome, as cores e o logo para se adequar à sua marca.",
+    icon: <Palette className="h-6 w-6" />,
+    href: "/admin/branding",
+  },
+  {
+    title: "Configurar Tela de Chamada",
+    description: "Personalize o banner de publicidade da tela de chamada.",
+    icon: <MonitorPlay className="h-6 w-6" />,
+    href: "/admin/display-settings",
+  }
 ];
 
 export default function AdminPage() {
@@ -129,23 +142,6 @@ export default function AdminPage() {
             </Card>
           </Link>
         ))}
-         <Card className="border-border/60">
-           <Link href="/admin/branding">
-            <div className="cursor-pointer hover:shadow-lg transition-shadow h-full flex flex-col">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Palette/> Branding Personalizado</CardTitle>
-              </CardHeader>
-              <CardContent className="flex-1">
-                <p className="text-sm text-muted-foreground mb-4">
-                  Ajuste as cores e o logo para se adequar à sua marca.
-                </p>
-              </CardContent>
-              <div className="p-6 pt-0 flex justify-end">
-                 <ArrowRight className="h-5 w-5 text-muted-foreground"/>
-              </div>
-            </div>
-           </Link>
-        </Card>
          <Card className="border-destructive/50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-destructive"><RotateCcw/> Zerar Senhas</CardTitle>

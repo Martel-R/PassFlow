@@ -16,7 +16,6 @@ interface BrandingData {
   accentColor: string; // HEX
   backgroundColor: string; // HEX
   logo: string | null; // Data URI
-  advertisementBanner: string | null; // Data URI
 }
 
 interface BrandingFormProps {
@@ -27,10 +26,8 @@ interface BrandingFormProps {
 export function BrandingForm({ initialData, updateBrandingAction }: BrandingFormProps) {
   const [data, setData] = useState(initialData);
   const [logoPreview, setLogoPreview] = useState<string | null>(initialData.logo);
-  const [bannerPreview, setBannerPreview] = useState<string | null>(initialData.advertisementBanner);
   
   const logoFileInputRef = useRef<HTMLInputElement>(null);
-  const bannerFileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -60,7 +57,7 @@ export function BrandingForm({ initialData, updateBrandingAction }: BrandingForm
   const handleRemoveImage = (
     setter: React.Dispatch<React.SetStateAction<string | null>>,
     ref: React.RefObject<HTMLInputElement>,
-    field: 'logo' | 'advertisementBanner'
+    field: 'logo'
   ) => {
     setter(null);
     if(ref.current) {
@@ -76,10 +73,7 @@ export function BrandingForm({ initialData, updateBrandingAction }: BrandingForm
     if (logoPreview === null && initialData.logo) {
       formData.append('removeLogo', 'true');
     }
-    if (bannerPreview === null && initialData.advertisementBanner) {
-        formData.append('removeBanner', 'true');
-    }
-
+   
     const result = await updateBrandingAction(formData);
 
     if (result.success) {
@@ -152,76 +146,40 @@ export function BrandingForm({ initialData, updateBrandingAction }: BrandingForm
             </div>
         </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="space-y-2">
-            <Label htmlFor="logo">Logo da Organização</Label>
-            <div className="relative w-full h-40 border-2 border-dashed rounded-lg flex items-center justify-center bg-muted/50">
-            {logoPreview ? (
-                <Image src={logoPreview} alt="Pré-visualização da logo" layout="fill" objectFit="contain" className="p-2" />
-            ) : (
-                <div className="text-center text-muted-foreground">
-                    <Upload className="mx-auto h-8 w-8" />
-                    <p>Sem logo</p>
-                </div>
-            )}
-            </div>
-            <div className="flex items-center gap-2 mt-2">
-                <Input
-                    id="logo"
-                    name="logo"
-                    type="file"
-                    accept="image/png, image/jpeg, image/svg+xml"
-                    onChange={(e) => handleImageChange(e, setLogoPreview)}
-                    className="flex-1"
-                    ref={logoFileInputRef}
-                />
-                {logoPreview && (
-                    <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveImage(setLogoPreview, logoFileInputRef, 'logo')}>
-                        <Trash2 className="h-4 w-4" />
-                        <span className="sr-only">Remover Logo</span>
-                    </Button>
-                )}
-            </div>
-             <p className="text-xs text-muted-foreground">
-                Recomendado: .PNG com fundo transparente, max 200KB.
-             </p>
-        </div>
-
-        <div className="space-y-2">
-            <Label htmlFor="advertisementBanner">Banner de Publicidade</Label>
-             <div className="relative w-full h-40 border-2 border-dashed rounded-lg flex items-center justify-center bg-muted/50">
-            {bannerPreview ? (
-                <Image src={bannerPreview} alt="Pré-visualização do banner" layout="fill" objectFit="contain" className="p-2" />
-            ) : (
-                <div className="text-center text-muted-foreground">
-                    <Upload className="mx-auto h-8 w-8" />
-                    <p>Sem banner</p>
-                </div>
-            )}
-            </div>
-            <div className="flex items-center gap-2 mt-2">
-                <Input
-                    id="advertisementBanner"
-                    name="advertisementBanner"
-                    type="file"
-                    accept="image/png, image/jpeg"
-                    onChange={(e) => handleImageChange(e, setBannerPreview)}
-                    className="flex-1"
-                    ref={bannerFileInputRef}
-                />
-                {bannerPreview && (
-                     <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveImage(setBannerPreview, bannerFileInputRef, 'advertisementBanner')}>
-                        <Trash2 className="h-4 w-4" />
-                        <span className="sr-only">Remover Banner</span>
-                    </Button>
-                )}
-            </div>
-             <p className="text-xs text-muted-foreground">
-                Recomendado: 1200x800px, max 500KB.
-             </p>
-        </div>
+      <div className="space-y-2 max-w-md">
+          <Label htmlFor="logo">Logo da Organização</Label>
+          <div className="relative w-full h-40 border-2 border-dashed rounded-lg flex items-center justify-center bg-muted/50">
+          {logoPreview ? (
+              <Image src={logoPreview} alt="Pré-visualização da logo" layout="fill" objectFit="contain" className="p-2" />
+          ) : (
+              <div className="text-center text-muted-foreground">
+                  <Upload className="mx-auto h-8 w-8" />
+                  <p>Sem logo</p>
+              </div>
+          )}
+          </div>
+          <div className="flex items-center gap-2 mt-2">
+              <Input
+                  id="logo"
+                  name="logo"
+                  type="file"
+                  accept="image/png, image/jpeg, image/svg+xml"
+                  onChange={(e) => handleImageChange(e, setLogoPreview)}
+                  className="flex-1"
+                  ref={logoFileInputRef}
+              />
+              {logoPreview && (
+                  <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveImage(setLogoPreview, logoFileInputRef, 'logo')}>
+                      <Trash2 className="h-4 w-4" />
+                      <span className="sr-only">Remover Logo</span>
+                  </Button>
+              )}
+          </div>
+            <p className="text-xs text-muted-foreground">
+              Recomendado: .PNG com fundo transparente, max 200KB.
+            </p>
       </div>
-     
+
       <Button type="submit">Salvar Alterações</Button>
     </form>
   );

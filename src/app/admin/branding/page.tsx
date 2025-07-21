@@ -80,7 +80,6 @@ export default async function AdminBrandingPage() {
     "theme.primary",
     "theme.accent",
     "theme.background",
-    "advertisementBanner",
   ]);
 
   const brandingData = {
@@ -89,7 +88,6 @@ export default async function AdminBrandingPage() {
     primaryColor: hslToHex(settings["theme.primary"]),
     accentColor: hslToHex(settings["theme.accent"]),
     backgroundColor: hslToHex(settings["theme.background"]),
-    advertisementBanner: settings.advertisementBanner || null,
   };
 
   async function handleUpdateBranding(formData: FormData) {
@@ -118,20 +116,6 @@ export default async function AdminBrandingPage() {
         await updateSetting('organizationLogo', logoDataUri);
     }
     
-    // Handle Advertisement Banner
-    const bannerFile = formData.get("advertisementBanner") as File;
-    const removeBanner = formData.get("removeBanner") === 'true';
-
-    if (removeBanner) {
-        await updateSetting('advertisementBanner', '');
-    } else if (bannerFile && bannerFile.size > 0) {
-        if (bannerFile.size > 500 * 1024) { // 500KB size limit
-             return { success: false, message: "O arquivo do banner é muito grande. O limite é de 500KB." };
-        }
-        const bannerDataUri = await fileToDataUri(bannerFile);
-        await updateSetting('advertisementBanner', bannerDataUri);
-    }
-
     revalidatePath("/", "layout");
     revalidatePath("/display");
     
