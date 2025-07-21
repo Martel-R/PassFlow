@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Card,
   CardContent,
@@ -15,92 +15,136 @@ import {
   DialogHeader,
 } from "@/components/ui/dialog";
 import { useCalledTicket, useCallHistory, useOrganizationName, useOrganizationLogo } from "@/lib/store";
-import { Volume2, Clock, Youtube } from "lucide-react";
+import { Volume2, Clock, Youtube, Image as ImageIcon } from "lucide-react";
 import Image from "next/image";
 import { Logo } from "../layout/logo";
+import type { AdvertisementMedia } from "@/lib/types";
+import YouTube from 'react-youtube';
 
 interface DisplayScreenProps {
   organizationName?: string | null;
-  advertisementBanner?: string | null;
-  advertisementVideoUrl?: string | null;
+  mediaItems: AdvertisementMedia[];
 }
 
-function getYouTubeEmbedUrl(url: string | null): string | null {
+function getYoutubeVideoId(url: string | null): string | null {
   if (!url) return null;
   let videoId: string | null = null;
   try {
     const urlObj = new URL(url);
-    if (urlObj.hostname === "youtu.be") {
+    if (urlObj.hostname === 'youtu.be') {
       videoId = urlObj.pathname.slice(1);
-    } else if (urlObj.hostname.includes("youtube.com")) {
-      videoId = urlObj.searchParams.get("v");
+    } else if (urlObj.hostname.includes('youtube.com')) {
+      videoId = urlObj.searchParams.get('v');
     }
   } catch (e) {
     return null; // Invalid URL
   }
-  
-  if (videoId) {
-    return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&modestbranding=1&iv_load_policy=3`;
-  }
-  return null;
+  return videoId;
 }
 
 
 export function DisplayScreen({ 
   organizationName: initialName,
-  advertisementBanner: initialBanner,
-  advertisementVideoUrl: initialVideoUrl
+  mediaItems
 }: DisplayScreenProps) {
   const calledTicket = useCalledTicket();
   const callHistory = useCallHistory();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [animationKey, setAnimationKey] = useState(0);
 
-  // Use data from store, which is initialized from layout server component
   const organizationName = useOrganizationName() ?? initialName;
   const organizationLogo = useOrganizationLogo();
-  const bannerSrc = initialBanner || "https://placehold.co/1200x800.png";
-  const videoEmbedUrl = getYouTubeEmbedUrl(initialVideoUrl);
+
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const advanceSlide = useCallback(() => {
+    setCurrentIndex((prevIndex) => (prevIndex + 1) % (mediaItems.length || 1));
+  }, [mediaItems.length]);
+  
+  const currentMedia = mediaItems[currentIndex];
+
+  useEffect(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+    
+    if (mediaItems.length > 1 && currentMedia?.type === 'image') {
+      timerRef.current = setTimeout(advanceSlide, (currentMedia.duration || 10) * 1000);
+    }
+
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, [currentIndex, mediaItems, currentMedia, advanceSlide]);
+
 
   useEffect(() => {
     if (calledTicket) {
       setIsModalOpen(true);
-      setAnimationKey(prev => prev + 1); // Trigger animation on new call
+      setAnimationKey(prev => prev + 1);
       
       const audio = new Audio('/notification.mp3'); 
       audio.play().catch(e => console.error("Error playing sound:", e));
       
       const timer = setTimeout(() => {
         setIsModalOpen(false);
-      }, 5000); // Close modal after 5 seconds
+      }, 5000);
 
       return () => clearTimeout(timer);
     }
   }, [calledTicket]); 
 
   const renderMedia = () => {
-    if (videoEmbedUrl) {
-      return (
-        <iframe
-          src={videoEmbedUrl}
-          title="YouTube video player"
-          frameBorder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          allowFullScreen
-          className="w-full h-full object-cover rounded-b-lg"
-          key={videoEmbedUrl}
-        ></iframe>
-      );
+    if (!currentMedia) {
+        return (
+            <Image 
+                src="https://placehold.co/1200x800.png"
+                alt="Placeholder"
+                fill
+                data-ai-hint="advertisement marketing"
+                className="object-cover rounded-b-lg"
+            />
+        );
+    }
+
+    if (currentMedia.type === 'video') {
+       const videoId = getYoutubeVideoId(currentMedia.src);
+       if (!videoId) return <p>URL do vídeo inválida.</p>;
+       
+       return (
+            <YouTube
+                videoId={videoId}
+                opts={{
+                    width: '100%',
+                    height: '100%',
+                    playerVars: {
+                        autoplay: 1,
+                        mute: 1,
+                        controls: 0,
+                        loop: mediaItems.length <= 1 ? 1 : 0,
+                        playlist: mediaItems.length <= 1 ? videoId : undefined,
+                        modestbranding: 1,
+                        iv_load_policy: 3,
+                    },
+                }}
+                className="w-full h-full object-cover rounded-b-lg"
+                onEnd={mediaItems.length > 1 ? advanceSlide : undefined}
+            />
+       );
+
     }
 
     return (
       <Image 
-          src={bannerSrc}
+          src={currentMedia.src}
           alt="Advertisement"
           fill
           data-ai-hint="advertisement marketing"
           className="object-cover rounded-b-lg"
-          key={bannerSrc} // Re-render if banner source changes
+          key={currentMedia.id}
         />
     );
   };
@@ -110,15 +154,13 @@ export function DisplayScreen({
       <div className="flex flex-col lg:flex-row h-full w-full">
         <div className="flex flex-col flex-1 p-4 md:p-8">
           <header className="mb-4 md:mb-8">
-            <h1 className="text-3xl md:text-5xl font-bold text-primary">
-              <Logo organizationName={organizationName} organizationLogo={organizationLogo} />
-            </h1>
+             <Logo organizationName={organizationName} organizationLogo={organizationLogo} />
           </header>
           <main className="flex-1 flex flex-col items-center justify-center">
              <Card className="w-full h-full shadow-lg">
                 <CardHeader>
                   <CardTitle className="text-xl md:text-2xl flex items-center gap-2">
-                    {videoEmbedUrl ? <Youtube /> : null}
+                    {currentMedia?.type === 'video' ? <Youtube /> : <ImageIcon />}
                     Publicidade
                   </CardTitle>
                 </CardHeader>

@@ -136,6 +136,7 @@ function initDb() {
       db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('theme.background', '210 20% 95%');
       db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('advertisementBanner', '');
       db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('advertisementVideoUrl', '');
+      db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('advertisementMedia', '[]');
   }
 }
 
@@ -146,6 +147,7 @@ function migrateDb() {
     try { db.prepare('SELECT icon FROM categories LIMIT 1').get(); } catch (e) { db.exec("ALTER TABLE categories ADD COLUMN icon TEXT NOT NULL DEFAULT 'Box'"); }
     try { db.prepare('SELECT icon FROM services LIMIT 1').get(); } catch (e) { db.exec("ALTER TABLE services ADD COLUMN icon TEXT NOT NULL DEFAULT 'Box'"); }
     try { db.prepare('SELECT icon FROM ticket_types LIMIT 1').get(); } catch (e) { db.exec("ALTER TABLE ticket_types ADD COLUMN icon TEXT NOT NULL DEFAULT 'Box'"); }
+    try { db.prepare('SELECT advertisementMedia FROM settings LIMIT 1').get(); } catch (e) { db.exec("ALTER TABLE settings ADD COLUMN advertisementMedia TEXT"); }
     
     // Migration for Dashboard Timestamps
     try { db.prepare('SELECT created_timestamp FROM tickets LIMIT 1').get(); } catch (e) { 

@@ -58,3 +58,10 @@ export type User = {
     counterId?: string;
     counterName?: string;
 };
+
+export type AdvertisementMedia = {
+    id: string;
+    type: 'image' | 'video';
+    src: string; // Data URI for image, URL for video
+    duration?: number; // in seconds, only for images
+}
