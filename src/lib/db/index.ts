@@ -34,7 +34,7 @@ function initDb() {
 
     CREATE TABLE IF NOT EXISTS counters (
       id TEXT PRIMARY KEY,
-      name TEXT NOT NULL
+      name TEXT NOT NULL UNIQUE
     );
     
     CREATE TABLE IF NOT EXISTS counter_categories (
@@ -78,9 +78,9 @@ function initDb() {
       name TEXT NOT NULL,
       username TEXT NOT NULL UNIQUE,
       password TEXT NOT NULL,
-      role TEXT NOT NULL,
+      role TEXT NOT NULL CHECK(role IN ('admin', 'clerk')),
       counter_id TEXT,
-      FOREIGN KEY (counter_id) REFERENCES counters (id)
+      FOREIGN KEY (counter_id) REFERENCES counters (id) ON DELETE SET NULL
     );
 
     CREATE TABLE IF NOT EXISTS settings (
@@ -248,7 +248,7 @@ export async function deleteCategory(id: string): Promise<void> {
 
 // Counter Functions
 export async function getCounters(): Promise<Counter[]> {
-  const counters = db.prepare('SELECT id, name FROM counters').all() as any[];
+  const counters = db.prepare('SELECT id, name FROM counters ORDER BY name ASC').all() as any[];
   const stmt = db.prepare('SELECT category_id FROM counter_categories WHERE counter_id = ?');
 
   return counters.map(counter => {
@@ -256,6 +256,36 @@ export async function getCounters(): Promise<Counter[]> {
     return { ...counter, assignedCategories };
   });
 }
+
+export async function addCounter(name: string, assignedCategories: string[]): Promise<void> {
+    const id = `ctr-${Date.now()}`;
+    const transaction = db.transaction(() => {
+        db.prepare('INSERT INTO counters (id, name) VALUES (?, ?)').run(id, name);
+        const insertCat = db.prepare('INSERT INTO counter_categories (counter_id, category_id) VALUES (?, ?)');
+        for (const catId of assignedCategories) {
+            insertCat.run(id, catId);
+        }
+    });
+    transaction();
+}
+
+export async function updateCounter(id: string, name: string, assignedCategories: string[]): Promise<void> {
+    const transaction = db.transaction(() => {
+        db.prepare('UPDATE counters SET name = ? WHERE id = ?').run(name, id);
+        db.prepare('DELETE FROM counter_categories WHERE counter_id = ?').run(id);
+        const insertCat = db.prepare('INSERT INTO counter_categories (counter_id, category_id) VALUES (?, ?)');
+        for (const catId of assignedCategories) {
+            insertCat.run(id, catId);
+        }
+    });
+    transaction();
+}
+
+export async function deleteCounter(id: string): Promise<void> {
+    // Foreign key on users table is ON DELETE SET NULL, so this is safe.
+    db.prepare('DELETE FROM counters WHERE id = ?').run(id);
+}
+
 
 // Ticket Functions
 export async function getTickets(): Promise<Ticket[]> {
@@ -382,14 +412,47 @@ export async function getUsers(): Promise<User[]> {
         SELECT u.id, u.name, u.username, u.role, u.counter_id, c.name as counterName
         FROM users u
         LEFT JOIN counters c ON u.counter_id = c.id
+        ORDER BY u.name ASC
     `).all() as any[];
     return rows;
+}
+
+export async function getUserById(id: string): Promise<User | null> {
+    const row = db.prepare('SELECT id, name, username, role, counter_id as counterId FROM users WHERE id = ?').get(id) as any;
+    return row || null;
 }
 
 export async function getUserByUsername(username: string): Promise<User | null> {
     const row = db.prepare('SELECT id, name, username, password, role, counter_id FROM users WHERE username = ?').get(username) as User | undefined;
     return row || null;
 }
+
+type UserData = Omit<User, 'id' | 'counterName'>;
+export async function addUser(data: UserData): Promise<void> {
+    const id = `usr-${Date.now()}`;
+    // In a real app, hash the password.
+    db.prepare('INSERT INTO users (id, name, username, password, role, counter_id) VALUES (?, ?, ?, ?, ?, ?)')
+      .run(id, data.name, data.username, data.password, data.role, data.role === 'clerk' ? data.counterId : null);
+}
+
+export async function updateUser(id: string, data: Partial<UserData>): Promise<void> {
+    let fields = 'name = ?, username = ?, role = ?, counter_id = ?';
+    const params: (string | null)[] = [data.name!, data.username!, data.role!, data.role === 'clerk' ? data.counterId! : null];
+
+    if (data.password) {
+        fields += ', password = ?';
+        params.push(data.password);
+    }
+    
+    params.push(id);
+
+    db.prepare(`UPDATE users SET ${fields} WHERE id = ?`).run(...params);
+}
+
+export async function deleteUser(id: string): Promise<void> {
+  db.prepare('DELETE FROM users WHERE id = ?').run(id);
+}
+
 
 // Ticket Type Functions
 export async function getTicketTypes(): Promise<TicketType[]> {
