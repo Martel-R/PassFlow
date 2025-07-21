@@ -107,6 +107,9 @@ function initDb() {
   const settingsCount = db.prepare('SELECT COUNT(*) as count FROM settings WHERE key = ?').get('organizationName') as { count: number };
   if (settingsCount.count === 0) {
       db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('organizationName', 'Nome da Organização');
+      db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('theme.primary', '210 70% 50%');
+      db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('theme.accent', '180 60% 40%');
+      db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('theme.background', '210 20% 95%');
   }
 }
 
@@ -129,8 +132,30 @@ export async function getSetting(key: string): Promise<string | null> {
     return row ? row.value : null;
 }
 
+export async function getSettings(keys: string[]): Promise<Record<string, string | null>> {
+    const placeholders = keys.map(() => '?').join(',');
+    const stmt = db.prepare(`SELECT key, value FROM settings WHERE key IN (${placeholders})`);
+    const rows = stmt.all(...keys) as { key: string, value: string }[];
+    
+    const settings: Record<string, string | null> = {};
+    keys.forEach(key => settings[key] = null); // Initialize with null
+    rows.forEach(row => settings[row.key] = row.value);
+
+    return settings;
+}
+
 export async function updateSetting(key: string, value: string): Promise<void> {
     db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(key, value);
+}
+
+export async function updateSettings(settings: Record<string, string>): Promise<void> {
+    const stmt = db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)');
+    const transaction = db.transaction(() => {
+        for (const [key, value] of Object.entries(settings)) {
+            stmt.run(key, value);
+        }
+    });
+    transaction();
 }
 
 // Service Functions

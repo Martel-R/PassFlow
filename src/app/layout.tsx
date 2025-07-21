@@ -3,10 +3,12 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { AppShell } from '@/components/layout/app-shell';
 import { Toaster } from "@/components/ui/toaster"
-import { getSetting } from '@/lib/db';
+import { getSettings } from '@/lib/db';
+import { CSSProperties } from 'react';
 
 export async function generateMetadata(): Promise<Metadata> {
-  const organizationName = await getSetting('organizationName') || 'Sistema de Atendimento';
+  const settings = await getSettings(['organizationName']);
+  const organizationName = settings.organizationName || 'Sistema de Atendimento';
  
   return {
     title: {
@@ -22,10 +24,23 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const organizationName = await getSetting('organizationName');
+  const settings = await getSettings([
+    'organizationName',
+    'theme.primary',
+    'theme.accent',
+    'theme.background',
+  ]);
+
+  const organizationName = settings.organizationName;
+
+  const themeStyle: CSSProperties = {
+    '--primary': settings['theme.primary'] || '210 70% 50%',
+    '--accent': settings['theme.accent'] || '180 60% 40%',
+    '--background': settings['theme.background'] || '210 20% 95%',
+  } as CSSProperties;
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning style={themeStyle}>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
