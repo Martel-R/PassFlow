@@ -17,12 +17,14 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import {
+    ChartContainer,
+    ChartTooltip,
     ChartTooltipContent,
     ChartLegend,
     ChartLegendContent,
+    ChartConfig
 } from "@/components/ui/chart";
-import { Ticket } from "@/lib/types";
-import { Bar, BarChart, Pie, PieChart, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { Bar, BarChart, Pie, PieChart, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, Legend } from "recharts";
 import { Clock, Users, BarChart2, PieChart as PieChartIcon } from "lucide-react";
 import { formatDistanceStrict } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -41,6 +43,28 @@ export function AdminDashboardClient({ metrics, recentTickets }: AdminDashboardC
         if (minutes < 1) return 'menos de 1 min';
         return formatDistanceStrict(0, seconds * 1000, { locale: ptBR });
     };
+
+    const barChartConfig = {
+      count: {
+        label: "Senhas",
+        color: "hsl(var(--primary))",
+      },
+    } satisfies ChartConfig;
+
+    const pieChartData = metrics.topServices.map((item: any, index: number) => ({
+        ...item,
+        fill: COLORS[index % COLORS.length]
+    }));
+
+    const pieChartConfig = {
+        count: {
+          label: "Senhas",
+        },
+        ...metrics.topServices.reduce((acc: any, service: any) => {
+            acc[service.name] = { label: service.name };
+            return acc;
+        }, {})
+    } satisfies ChartConfig
 
     return (
         <div className="flex-1 space-y-4 p-4 sm:p-8 pt-6">
@@ -104,29 +128,31 @@ export function AdminDashboardClient({ metrics, recentTickets }: AdminDashboardC
                         <CardTitle className="flex items-center gap-2"><BarChart2 /> Atendimentos na Semana</CardTitle>
                     </CardHeader>
                     <CardContent className="pl-2">
-                        <ResponsiveContainer width="100%" height={350}>
-                             <BarChart data={metrics.ticketsLast7Days}>
-                                <XAxis
-                                dataKey="date"
-                                stroke="#888888"
-                                fontSize={12}
-                                tickLine={false}
-                                axisLine={false}
-                                />
-                                <YAxis
-                                stroke="#888888"
-                                fontSize={12}
-                                tickLine={false}
-                                axisLine={false}
-                                tickFormatter={(value) => `${value}`}
-                                />
-                                <Tooltip
-                                    content={<ChartTooltipContent />}
-                                    cursor={{ fill: "hsl(var(--muted))" }}
-                                />
-                                <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                            </BarChart>
-                        </ResponsiveContainer>
+                        <ChartContainer config={barChartConfig} className="h-[350px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart accessibilityLayer data={metrics.ticketsLast7Days}>
+                                    <XAxis
+                                        dataKey="date"
+                                        stroke="#888888"
+                                        fontSize={12}
+                                        tickLine={false}
+                                        axisLine={false}
+                                    />
+                                    <YAxis
+                                        stroke="#888888"
+                                        fontSize={12}
+                                        tickLine={false}
+                                        axisLine={false}
+                                        tickFormatter={(value) => `${value}`}
+                                    />
+                                    <ChartTooltip
+                                        cursor={false}
+                                        content={<ChartTooltipContent indicator="dot" />}
+                                    />
+                                    <Bar dataKey="count" fill="var(--color-count)" radius={4} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </ChartContainer>
                     </CardContent>
                 </Card>
                 <Card className="col-span-4 lg:col-span-3">
@@ -134,17 +160,34 @@ export function AdminDashboardClient({ metrics, recentTickets }: AdminDashboardC
                         <CardTitle className="flex items-center gap-2"><PieChartIcon /> Serviços Mais Utilizados</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <ResponsiveContainer width="100%" height={350}>
-                            <PieChart>
-                                <Pie data={metrics.topServices} dataKey="count" nameKey="name" cx="50%" cy="50%" outerRadius={120} label>
-                                    {metrics.topServices.map((entry: any, index: number) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                       <ChartContainer config={pieChartConfig} className="mx-auto aspect-square h-[350px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                <ChartTooltip
+                                    cursor={false}
+                                    content={<ChartTooltipContent hideLabel />}
+                                />
+                                <Pie 
+                                    data={pieChartData} 
+                                    dataKey="count" 
+                                    nameKey="name" 
+                                    cx="50%" 
+                                    cy="50%" 
+                                    outerRadius={120} 
+                                    label
+                                >
+                                    {pieChartData.map((entry: any) => (
+                                        <Cell key={`cell-${entry.name}`} fill={entry.fill} />
                                     ))}
                                 </Pie>
-                                <Tooltip content={<ChartTooltipContent />} />
-                                <ChartLegend content={<ChartLegendContent />} />
-                            </PieChart>
-                        </ResponsiveContainer>
+                                <ChartLegend
+                                    content={<ChartLegendContent nameKey="name" />}
+                                    verticalAlign="bottom"
+                                    align="center"
+                                />
+                                </PieChart>
+                            </ResponsiveContainer>
+                       </ChartContainer>
                     </CardContent>
                 </Card>
             </div>
@@ -189,3 +232,5 @@ export function AdminDashboardClient({ metrics, recentTickets }: AdminDashboardC
         </div>
     );
 }
+
+    
