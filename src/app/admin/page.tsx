@@ -97,10 +97,10 @@ export default function AdminPage() {
   const handleResetTickets = async () => {
     try {
       const { count } = await resetTickets();
-      await refreshTickets();
+      await refreshTickets(true); // Pass true to notify other tabs
       toast({
         title: "Senhas Zeradas com Sucesso!",
-        description: `${count} senha(s) em espera foram canceladas. A contagem para novas senhas foi reiniciada.`,
+        description: `${count} senha(s) foram canceladas. A contagem para novas senhas foi reiniciada.`,
       });
     } catch (error) {
       toast({
@@ -148,7 +148,7 @@ export default function AdminPage() {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground mb-4">
-              Esta ação cancela todas as senhas em espera. Use com cuidado.
+              Esta ação cancela todas as senhas em espera e em atendimento. Use com cuidado.
             </p>
             <AlertDialog>
               <AlertDialogTrigger asChild>
