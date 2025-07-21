@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "9002:3000"
+    volumes:
+      - passflow-data:/app/passflow.db
+    environment:
+      - NODE_ENV=production
+
+volumes:
+  passflow-data:
