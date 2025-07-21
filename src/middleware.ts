@@ -6,64 +6,60 @@ export function middleware(request: NextRequest) {
   const cookie = request.cookies.get('auth-session');
   const { pathname } = request.nextUrl;
 
-  const protectedAdminRoutes = ['/admin'];
-  const protectedClerkRoutes = ['/clerk'];
-  
   const isPublicRoute = ['/', '/get-ticket', '/display'].includes(pathname) || pathname.startsWith('/api/login');
-  if (isPublicRoute) {
-    return NextResponse.next();
-  }
+  const isAdminRoute = pathname.startsWith('/admin');
+  const isClerkRoute = pathname.startsWith('/clerk');
 
-  const isAdminRoute = protectedAdminRoutes.some(p => pathname.startsWith(p));
-  const isClerkRoute = protectedClerkRoutes.some(p => pathname.startsWith(p));
-  
-  // Se não houver cookie, redireciona para a página de login.
+  // If no session cookie exists
   if (!cookie) {
-      const url = request.nextUrl.clone();
-      url.pathname = '/';
-      return NextResponse.redirect(url);
+    // Allow access to public routes
+    if (isPublicRoute) {
+      return NextResponse.next();
+    }
+    // For any other protected route, redirect to login
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = '/';
+    return NextResponse.redirect(loginUrl);
   }
 
-  // Se houver um cookie, valida a sessão e as permissões.
+  // If a session cookie exists, try to parse it
   try {
     const session = JSON.parse(cookie.value);
     const { role } = session;
 
     if (!role) {
-        throw new Error("Invalid session data");
+      throw new Error("Invalid session: role is missing");
     }
 
-    // Redireciona atendentes que tentam acessar páginas de admin.
+    // If user is logged in and tries to access the login page, redirect them to their dashboard
+    if (pathname === '/') {
+       const dashboardUrl = request.nextUrl.clone();
+       dashboardUrl.pathname = role === 'admin' ? '/admin' : '/clerk';
+       return NextResponse.redirect(dashboardUrl);
+    }
+    
+    // If an admin tries to access a clerk-only route, it's fine (admins can do everything)
+    // If a clerk tries to access an admin route, redirect them
     if (isAdminRoute && role !== 'admin') {
-       const url = request.nextUrl.clone();
-       url.pathname = '/clerk'; // Redireciona para o painel do atendente
-       return NextResponse.redirect(url);
+      const clerkUrl = request.nextUrl.clone();
+      clerkUrl.pathname = '/clerk';
+      return NextResponse.redirect(clerkUrl);
     }
-    
-    // Se o usuário já está logado, permite o acesso às rotas internas.
-    if (isClerkRoute && (role === 'clerk' || role === 'admin')) {
-      return NextResponse.next();
-    }
-    if (isAdminRoute && role === 'admin') {
-      return NextResponse.next();
-    }
-    
+
+    // If all checks pass, allow the request to proceed
+    return NextResponse.next();
+
   } catch (e) {
-    // Se o cookie for inválido, redireciona para o login e limpa o cookie.
-    const url = request.nextUrl.clone();
-    url.pathname = '/';
-    const response = NextResponse.redirect(url);
-    response.cookies.delete('auth-session'); 
+    // If the cookie is invalid, delete it and redirect to login
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = '/';
+    const response = NextResponse.redirect(loginUrl);
+    response.cookies.delete('auth-session');
     return response;
   }
-
-  // Se nenhuma das condições acima for atendida, por segurança, redireciona para o login.
-  const url = request.nextUrl.clone();
-  url.pathname = '/';
-  return NextResponse.redirect(url);
 }
 
 export const config = {
-  // O matcher evita que o middleware rode em arquivos estáticos, imagens, etc.
+  // The matcher prevents the middleware from running on static files, images, etc.
   matcher: ['/((?!api/logout|_next/static|_next/image|favicon.ico|notification.mp3).*)'],
 }
