@@ -1,3 +1,4 @@
+
 import {
   Card,
   CardContent,
@@ -11,11 +12,50 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { PlusCircle, Edit, Trash2 } from "lucide-react";
-import { getCategories } from "@/lib/db";
+import { PlusCircle } from "lucide-react";
+import { getCategories, addCategory, updateCategory, deleteCategory } from "@/lib/db";
+import { CategoryForm } from "./category-form";
+import { DeleteCategoryDialog } from "./delete-category-dialog";
+import { revalidatePath } from "next/cache";
+import { Category } from "@/lib/types";
 
 export default async function AdminCategoriesPage() {
   const categories = await getCategories();
+
+  async function handleAddCategory(name: string) {
+    "use server";
+    try {
+      await addCategory(name);
+      revalidatePath("/admin/categories");
+      return { success: true, message: "Categoria adicionada com sucesso!" };
+    } catch (error) {
+      return { success: false, message: "Erro ao adicionar categoria." };
+    }
+  }
+
+  async function handleUpdateCategory(id: string, name: string) {
+    "use server";
+     try {
+      await updateCategory(id, name);
+      revalidatePath("/admin/categories");
+       return { success: true, message: "Categoria atualizada com sucesso!" };
+    } catch (error) {
+      return { success: false, message: "Erro ao atualizar categoria." };
+    }
+  }
+  
+  async function handleDeleteCategory(id: string) {
+    "use server";
+    try {
+      await deleteCategory(id);
+      revalidatePath("/admin/categories");
+      return { success: true, message: "Categoria excluída com sucesso!" };
+    } catch (error) {
+       // A constraint error might happen if the category is in use
+      return { success: false, message: "Erro ao excluir categoria. Verifique se ela não está sendo usada por algum serviço." };
+    }
+  }
+
 
   return (
     <div className="flex-1 space-y-4 p-4 sm:p-8 pt-6">
@@ -28,35 +68,43 @@ export default async function AdminCategoriesPage() {
             Defina as categorias para organizar os tipos de atendimento.
           </p>
         </div>
-        <Button>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Adicionar Categoria
-        </Button>
+        <CategoryForm 
+          formAction={handleAddCategory}
+          buttonTitle="Adicionar Categoria"
+          dialogTitle="Nova Categoria"
+          dialogDescription="Crie uma nova categoria para seus serviços."
+        >
+          <Button>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Adicionar Categoria
+          </Button>
+        </CategoryForm>
       </div>
       <Card>
         <CardContent className="mt-6">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>ID da Categoria</TableHead>
                 <TableHead>Nome da Categoria</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
+                <TableHead className="w-[180px] text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {categories.map((category) => (
+              {categories.map((category: Category) => (
                 <TableRow key={category.id}>
-                  <TableCell className="font-mono">{category.id}</TableCell>
                   <TableCell className="font-medium">{category.name}</TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon">
-                      <Edit className="h-4 w-4" />
-                      <span className="sr-only">Editar</span>
-                    </Button>
-                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                      <Trash2 className="h-4 w-4" />
-                       <span className="sr-only">Excluir</span>
-                    </Button>
+                    <CategoryForm 
+                       formAction={handleUpdateCategory}
+                       buttonTitle="Editar"
+                       dialogTitle="Editar Categoria"
+                       dialogDescription="Atualize o nome desta categoria."
+                       initialData={category}
+                    />
+                    <DeleteCategoryDialog 
+                      category={category}
+                      deleteAction={handleDeleteCategory}
+                    />
                   </TableCell>
                 </TableRow>
               ))}
@@ -67,3 +115,4 @@ export default async function AdminCategoriesPage() {
     </div>
   );
 }
+

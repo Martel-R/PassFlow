@@ -13,12 +13,13 @@ import {
 import { mockCategories, mockCounters, mockServices, mockUsers } from '../mock-data';
 
 const db = new Database('passflow.db');
+db.pragma('foreign_keys = ON'); // Enable foreign key constraints
 
 function initDb() {
   db.exec(`
     CREATE TABLE IF NOT EXISTS categories (
       id TEXT PRIMARY KEY,
-      name TEXT NOT NULL
+      name TEXT NOT NULL UNIQUE
     );
 
     CREATE TABLE IF NOT EXISTS services (
@@ -26,7 +27,7 @@ function initDb() {
       name TEXT NOT NULL,
       category_id TEXT NOT NULL,
       prefix TEXT NOT NULL,
-      FOREIGN KEY (category_id) REFERENCES categories (id)
+      FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE RESTRICT
     );
 
     CREATE TABLE IF NOT EXISTS counters (
@@ -38,8 +39,8 @@ function initDb() {
         counter_id TEXT NOT NULL,
         category_id TEXT NOT NULL,
         PRIMARY KEY (counter_id, category_id),
-        FOREIGN KEY (counter_id) REFERENCES counters(id),
-        FOREIGN KEY (category_id) REFERENCES categories(id)
+        FOREIGN KEY (counter_id) REFERENCES counters(id) ON DELETE CASCADE,
+        FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
     );
 
     CREATE TABLE IF NOT EXISTS tickets (
@@ -105,7 +106,7 @@ function initDb() {
 
   const settingsCount = db.prepare('SELECT COUNT(*) as count FROM settings WHERE key = ?').get('organizationName') as { count: number };
   if (settingsCount.count === 0) {
-      db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('organizationName', 'Nome da Organização');
+      db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('organizationName', 'PassFlow');
   }
 }
 
@@ -143,6 +144,21 @@ export async function getCategories(): Promise<Category[]> {
   const rows = db.prepare('SELECT id, name FROM categories').all() as any[];
   return rows;
 }
+
+export async function addCategory(name: string): Promise<void> {
+  const id = name.toLowerCase().replace(/\s+/g, '-');
+  db.prepare('INSERT INTO categories (id, name) VALUES (?, ?)').run(id, name);
+}
+
+export async function updateCategory(id: string, name: string): Promise<void> {
+  db.prepare('UPDATE categories SET name = ? WHERE id = ?').run(name, id);
+}
+
+export async function deleteCategory(id: string): Promise<void> {
+  // Foreign key constraints will prevent deletion if the category is in use
+  db.prepare('DELETE FROM categories WHERE id = ?').run(id);
+}
+
 
 // Counter Functions
 export async function getCounters(): Promise<Counter[]> {
