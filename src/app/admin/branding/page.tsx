@@ -41,7 +41,10 @@ function hexToHsl(hex: string): string {
 }
 
 function hslToHex(hslStr: string): string {
-  const [h, s, l] = hslStr.match(/\d+/g)!.map(Number);
+  if (!hslStr) return "#000000";
+  const match = hslStr.match(/\d+/g);
+  if (!match) return "#000000";
+  const [h, s, l] = match.map(Number);
   const sFraction = s / 100;
   const lFraction = l / 100;
   const c = (1 - Math.abs(2 * lFraction - 1)) * sFraction;
