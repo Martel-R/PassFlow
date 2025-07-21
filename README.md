@@ -7,13 +7,14 @@ PassFlow é um sistema moderno e completo para gerenciamento de filas e senhas d
 - **Emissão de Senhas:** Interface intuitiva para clientes retirarem senhas, com seleção de categoria e tipo de atendimento (normal/prioritário).
 - **Impressão de Senha:** Suporte para impressão de senhas físicas no momento da emissão.
 - **Painel do Atendente:** Uma interface focada para os atendentes chamarem a próxima senha, rechamarem e finalizarem atendimentos.
-- **Tela de Chamada (Display):** Tela pública para exibição das senhas chamadas, com suporte a carrossel de mídias (imagens e vídeos do YouTube).
+- **Tela de Chamada (Display):** Tela pública para exibição das senhas chamadas, com suporte a carrossel de mídias (imagens e vídeos do YouTube) e alerta sonoro.
 - **Painel de Administração Completo:**
     - **Dashboard com Métricas:** Visualize estatísticas de atendimento em tempo real.
     - **Gerenciamento de Usuários:** Crie, edite e remova administradores e atendentes.
     - **Configuração do Sistema:** Gerencie serviços, categorias, balcões e tipos de senha com prioridades.
     - **Branding Personalizado:** Altere o nome da organização, o logo e as cores do sistema.
     - **Configuração da Tela:** Personalize o carrossel de publicidade da tela de chamada.
+    - **Reset da Fila:** Zere todas as senhas em espera e em atendimento com um clique.
 
 ## 🚀 Tecnologias Utilizadas
 
@@ -24,6 +25,10 @@ PassFlow é um sistema moderno e completo para gerenciamento de filas e senhas d
 - **Banco de Dados:** SQLite (via `better-sqlite3`)
 - **Estado Global:** Zustand
 - **Containerização:** Docker & Docker Compose
+
+## 📖 Manual de Uso Completo
+
+Para um guia detalhado sobre como utilizar todas as funcionalidades do sistema, desde a retirada de senha até a configuração avançada pelo administrador, consulte o nosso **[Manual de Uso Completo](./MANUAL.md)**.
 
 ## 🚀 Como Começar
 
