@@ -11,6 +11,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { useCalledTicket, useCallHistory, useOrganizationName, useOrganizationLogo } from "@/lib/store";
 import { Volume2, Clock } from "lucide-react";
@@ -102,6 +103,7 @@ export function DisplayScreen({
       
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent key={animationKey} className="sm:max-w-xl p-0 border-0 overflow-hidden flash">
+            <DialogTitle className="sr-only">Senha Chamada</DialogTitle>
             <div className="p-10 md:p-16 text-center">
                <p className="text-2xl md:text-3xl text-muted-foreground">Senha</p>
                <p className="text-8xl sm:text-9xl md:text-[10rem] font-extrabold text-primary my-4 md:my-6 leading-none">
