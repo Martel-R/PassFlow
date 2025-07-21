@@ -1,5 +1,5 @@
 
-import type { Service, Counter, Category, User } from "./types";
+import type { Service, Counter, Category, User, TicketType } from "./types";
 
 export const mockCategories: Category[] = [
   { id: "cat-1", name: "Atendimento Geral" },
@@ -27,4 +27,9 @@ export const mockUsers: User[] = [
     { id: "u2", name: "Ana Silva", username: "ana", password: "1234", role: "clerk", counterId: "1" },
     { id: "u3", name: "Bruno Costa", username: "bruno", password: "1234", role: "clerk", counterId: "2" },
     { id: "u4", name: "Carla Dias", username: "carla", password: "1234", role: "clerk", counterId: "4" },
+];
+
+export const mockTicketTypes: TicketType[] = [
+    { id: "tt-1", name: "Atendimento Normal", description: "Para atendimento geral sem prioridade legal.", prefix: "G", priorityWeight: 1 },
+    { id: "tt-2", name: "Atendimento Prioritário", description: "Para idosos, gestantes, pessoas com deficiência, etc.", prefix: "P", priorityWeight: 10 },
 ];

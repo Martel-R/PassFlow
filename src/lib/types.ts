@@ -1,4 +1,5 @@
 
+
 export type Service = {
   id: string;
   name: string;
@@ -16,6 +17,14 @@ export type Category = {
   name: string;
 };
 
+export type TicketType = {
+  id: string;
+  name: string;
+  description: string;
+  prefix: string;
+  priorityWeight: number; // Higher number = higher priority
+};
+
 export type TicketStatus = "waiting" | "in-progress" | "finished" | "cancelled";
 
 export type Ticket = {
@@ -25,6 +34,7 @@ export type Ticket = {
   serviceId: string;
   timestamp: Date;
   status: TicketStatus;
+  priorityWeight: number;
   counter?: string;
   counterId?: string;
   clerk?: string;

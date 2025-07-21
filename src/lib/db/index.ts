@@ -9,8 +9,9 @@ import {
   Ticket,
   TicketStatus,
   User,
+  TicketType,
 } from '../types';
-import { mockCategories, mockCounters, mockServices, mockUsers } from '../mock-data';
+import { mockCategories, mockCounters, mockServices, mockUsers, mockTicketTypes } from '../mock-data';
 
 const db = new Database('passflow.db');
 db.pragma('foreign_keys = ON'); // Enable foreign key constraints
@@ -42,12 +43,21 @@ function initDb() {
         FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
     );
 
+     CREATE TABLE IF NOT EXISTS ticket_types (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE,
+      description TEXT,
+      prefix TEXT NOT NULL UNIQUE,
+      priority_weight INTEGER NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS tickets (
       id TEXT PRIMARY KEY,
       number TEXT NOT NULL,
       service_id TEXT NOT NULL,
       timestamp INTEGER NOT NULL,
       status TEXT NOT NULL,
+      priority_weight INTEGER NOT NULL,
       counter_id TEXT,
       notes TEXT,
       tags TEXT,
@@ -126,6 +136,13 @@ function initDb() {
     const insertUser = db.prepare('INSERT INTO users (id, name, username, password, role, counter_id) VALUES (?, ?, ?, ?, ?, ?)');
     mockUsers.forEach(user => insertUser.run(user.id, user.name, user.username, user.password, user.role, user.counterId));
   }
+  
+  const ticketTypeCount = db.prepare('SELECT COUNT(*) as count FROM ticket_types').get() as { count: number };
+  if (ticketTypeCount.count === 0) {
+    const insertTicketType = db.prepare('INSERT INTO ticket_types (id, name, description, prefix, priority_weight) VALUES (?, ?, ?, ?, ?)');
+    mockTicketTypes.forEach(tt => insertTicketType.run(tt.id, tt.name, tt.description, tt.prefix, tt.priorityWeight));
+  }
+
 
   const settingsCount = db.prepare('SELECT COUNT(*) as count FROM settings WHERE key = ?').get('organizationName') as { count: number };
   if (settingsCount.count === 0) {
@@ -143,6 +160,12 @@ function migrateDb() {
         db.prepare('SELECT service_name FROM tickets LIMIT 1').get();
     } catch (e) {
         db.exec('ALTER TABLE tickets ADD COLUMN service_name TEXT');
+    }
+    
+    try {
+        db.prepare('SELECT priority_weight FROM tickets LIMIT 1').get();
+    } catch(e) {
+        db.exec('ALTER TABLE tickets ADD COLUMN priority_weight INTEGER NOT NULL DEFAULT 1');
     }
 }
 
@@ -244,7 +267,8 @@ export async function getTickets(): Promise<Ticket[]> {
             t.number, 
             t.service_name as serviceName, 
             t.timestamp, 
-            t.status, 
+            t.status,
+            t.priority_weight as priorityWeight,
             c.name as counter, 
             t.notes, 
             t.tags,
@@ -261,11 +285,11 @@ export async function getTickets(): Promise<Ticket[]> {
     }));
 }
 
-export async function addTicket(service: Service, type: 'normal' | 'priority'): Promise<Ticket> {
+export async function addTicket(service: Service, ticketType: TicketType): Promise<Ticket> {
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
 
-  const prefix = type === 'priority' ? 'P' : 'G';
+  const prefix = ticketType.prefix;
   
   const countResult = db.prepare(
     'SELECT COUNT(*) as count FROM tickets WHERE number LIKE ? AND timestamp >= ?'
@@ -279,9 +303,9 @@ export async function addTicket(service: Service, type: 'normal' | 'priority'): 
   const status = 'waiting';
 
   db.prepare(`
-        INSERT INTO tickets (id, number, service_id, timestamp, status, service_name)
-        VALUES (?, ?, ?, ?, ?, ?)
-    `).run(id, ticketNumber, service.id, timestamp.getTime(), status, service.name);
+        INSERT INTO tickets (id, number, service_id, timestamp, status, service_name, priority_weight)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(id, ticketNumber, service.id, timestamp.getTime(), status, service.name, ticketType.priorityWeight);
     
   const newTicket: Ticket = {
     id,
@@ -290,6 +314,7 @@ export async function addTicket(service: Service, type: 'normal' | 'priority'): 
     serviceName: service.name,
     timestamp: timestamp,
     status: 'waiting',
+    priorityWeight: ticketType.priorityWeight,
   };
 
   return newTicket;
@@ -347,4 +372,25 @@ export async function getUsers(): Promise<User[]> {
 export async function getUserByUsername(username: string): Promise<User | null> {
     const row = db.prepare('SELECT id, name, username, password, role, counter_id FROM users WHERE username = ?').get(username) as User | undefined;
     return row || null;
+}
+
+// Ticket Type Functions
+export async function getTicketTypes(): Promise<TicketType[]> {
+  const rows = db.prepare('SELECT id, name, description, prefix, priority_weight as priorityWeight FROM ticket_types ORDER BY priority_weight DESC').all() as any[];
+  return rows;
+}
+
+export async function addTicketType(data: Omit<TicketType, 'id'>): Promise<void> {
+  const id = `tt-${Date.now()}`;
+  db.prepare('INSERT INTO ticket_types (id, name, description, prefix, priority_weight) VALUES (?, ?, ?, ?, ?)')
+    .run(id, data.name, data.description, data.prefix, data.priorityWeight);
+}
+
+export async function updateTicketType(id: string, data: Omit<TicketType, 'id'>): Promise<void> {
+  db.prepare('UPDATE ticket_types SET name = ?, description = ?, prefix = ?, priority_weight = ? WHERE id = ?')
+    .run(data.name, data.description, data.prefix, data.priorityWeight, id);
+}
+
+export async function deleteTicketType(id: string): Promise<void> {
+  db.prepare('DELETE FROM ticket_types WHERE id = ?').run(id);
 }

@@ -76,7 +76,7 @@ export function ClerkDashboard() {
     }
   }, [session]);
 
-  const waitingTickets = useMemo(() => tickets.filter(t => t.status === 'waiting').sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime()), [tickets]);
+  const waitingTickets = useMemo(() => tickets.filter(t => t.status === 'waiting'), [tickets]);
 
   const handleCallNext = async () => {
     if (activeTicket && activeTicket.status !== 'finished') {
@@ -100,14 +100,11 @@ export function ClerkDashboard() {
     const nextTicket = waitingTickets
         .filter(ticket => availableServiceIds.has(ticket.serviceId || '')) // Filter tickets clerk can attend
         .sort((a, b) => {
-            const aIsPriority = a.number.startsWith('P-');
-            const bIsPriority = b.number.startsWith('P-');
-            
-            // Priority tickets first
-            if (aIsPriority && !bIsPriority) return -1;
-            if (!aIsPriority && bIsPriority) return 1;
-            
-            // Otherwise, sort by timestamp
+           // Higher priorityWeight first
+           if (a.priorityWeight !== b.priorityWeight) {
+                return b.priorityWeight - a.priorityWeight;
+           }
+            // Otherwise, sort by timestamp (older first)
             return a.timestamp.getTime() - b.timestamp.getTime();
         })
         .find(ticket => ticket); // Find the first one in the sorted list
@@ -230,7 +227,7 @@ export function ClerkDashboard() {
                       waitingTickets.map((ticket) => (
                         <TableRow key={ticket.id}>
                           <TableCell className="font-medium">
-                             <Badge variant={ticket.number.startsWith('P-') ? 'default' : 'secondary'}>{ticket.number}</Badge>
+                             <Badge variant={ticket.priorityWeight > 1 ? 'default' : 'secondary'}>{ticket.number}</Badge>
                           </TableCell>
                           <TableCell>{ticket.serviceName}</TableCell>
                           <TableCell>{formatDistanceToNow(ticket.timestamp, { addSuffix: true, locale: ptBR })}</TableCell>

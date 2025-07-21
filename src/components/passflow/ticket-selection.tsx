@@ -18,14 +18,13 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { getServicesByCategory, getCategories, addTicket as dbAddTicket } from "@/lib/db";
-import { Ticket as TicketIcon, ArrowRight, User, ShieldQuestion, ChevronLeft, Building, ListTree, UserCheck } from "lucide-react";
+import { getServicesByCategory, getCategories, addTicket as dbAddTicket, getTicketTypes } from "@/lib/db";
+import { Ticket as TicketIcon, ArrowRight, User, ShieldQuestion, ChevronLeft, Building, ListTree, UserCheck, Tags } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { usePassFlowActions } from "@/lib/store";
-import type { Service, Ticket, Category } from "@/lib/types";
+import type { Service, Ticket, Category, TicketType } from "@/lib/types";
 
 type Step = 'category' | 'service' | 'type';
-type TicketType = 'normal' | 'priority';
 
 const stepTitles: Record<Step, { title: string; description: string }> = {
   category: {
@@ -38,7 +37,7 @@ const stepTitles: Record<Step, { title: string; description: string }> = {
   },
   type: {
     title: "Passo 3: Selecione o Tipo de Senha",
-    description: "Informe se seu atendimento é normal ou prioritário.",
+    description: "Informe o seu tipo de atendimento.",
   }
 };
 
@@ -47,6 +46,7 @@ export function TicketSelection() {
   
   const [categories, setCategories] = useState<Category[]>([]);
   const [services, setServices] = useState<Service[]>([]);
+  const [ticketTypes, setTicketTypes] = useState<TicketType[]>([]);
   
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
@@ -58,11 +58,13 @@ export function TicketSelection() {
   const { refreshTickets } = usePassFlowActions();
 
   useEffect(() => {
-    const fetchCategories = async () => {
+    const fetchInitialData = async () => {
       const dbCategories = await getCategories();
       setCategories(dbCategories);
+      const dbTicketTypes = await getTicketTypes();
+      setTicketTypes(dbTicketTypes);
     };
-    fetchCategories();
+    fetchInitialData();
   }, []);
 
   useEffect(() => {
@@ -175,36 +177,24 @@ export function TicketSelection() {
       case 'type':
         return (
            <div className="grid w-full max-w-2xl gap-8 md:grid-cols-2">
-              <Card
-                className="flex flex-col justify-between transform transition-transform duration-300 hover:scale-105 hover:shadow-xl cursor-pointer"
-                onClick={() => handleTicketTypeClick('normal')}
-              >
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                     <User className="h-8 w-8 text-primary" />
-                    <ArrowRight className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                   <CardTitle className="mt-4">Atendimento Normal</CardTitle>
-                </CardHeader>
-                 <CardContent>
-                    <CardDescription>Para atendimento geral sem prioridade legal.</CardDescription>
-                </CardContent>
-              </Card>
-              <Card
-                className="flex flex-col justify-between transform transition-transform duration-300 hover:scale-105 hover:shadow-xl cursor-pointer"
-                onClick={() => handleTicketTypeClick('priority')}
-              >
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                     <UserCheck className="h-8 w-8 text-primary" />
-                    <ArrowRight className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                   <CardTitle className="mt-4">Atendimento Prioritário</CardTitle>
-                </CardHeader>
-                 <CardContent>
-                    <CardDescription>Para idosos, gestantes, pessoas com deficiência, etc.</CardDescription>
-                </CardContent>
-              </Card>
+              {ticketTypes.map((type) => (
+                <Card
+                    key={type.id}
+                    className="flex flex-col justify-between transform transition-transform duration-300 hover:scale-105 hover:shadow-xl cursor-pointer"
+                    onClick={() => handleTicketTypeClick(type)}
+                >
+                    <CardHeader>
+                    <div className="flex items-start justify-between">
+                        <Tags className="h-8 w-8 text-primary" />
+                        <ArrowRight className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                    <CardTitle className="mt-4">{type.name}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <CardDescription>{type.description}</CardDescription>
+                    </CardContent>
+                </Card>
+              ))}
            </div>
         );
     }

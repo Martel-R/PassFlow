@@ -18,6 +18,7 @@ import {
   RotateCcw,
   ArrowRight,
   UserCog,
+  Tags,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -60,6 +61,12 @@ const adminActions = [
     description: "Definir categorias de serviço e prioridades.",
     icon: <LayoutGrid className="h-6 w-6" />,
     href: "/admin/categories",
+  },
+  {
+    title: "Gerenciar Tipos de Senha",
+    description: "Definir os tipos de senha e seus pesos de prioridade.",
+    icon: <Tags className="h-6 w-6" />,
+    href: "/admin/ticket-types",
   },
 ];
 
