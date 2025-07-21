@@ -49,7 +49,7 @@ export function TicketSelection() {
     if (generatedTicket) {
       timer = setTimeout(() => {
         handleCloseDialog();
-      }, 3000);
+      }, 5000); // Increased timeout to 5 seconds
     }
     return () => clearTimeout(timer);
   }, [generatedTicket]);
@@ -59,7 +59,7 @@ export function TicketSelection() {
       const newTicket = await dbAddTicket(service);
       setGeneratedTicket(newTicket);
       setSelectedService(service);
-      await refreshTickets(true); // pass true to notify other tabs
+      await refreshTickets(true); // Notify other tabs about the update
 
       toast({
         title: "Senha gerada com sucesso!",
