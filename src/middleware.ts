@@ -17,17 +17,14 @@ export function middleware(request: NextRequest) {
   const isAdminRoute = protectedAdminRoutes.some(p => pathname.startsWith(p));
   const isClerkRoute = protectedClerkRoutes.some(p => pathname.startsWith(p));
   
-  // Rule: If no session cookie exists, redirect any protected route access to login.
+  // Se não houver cookie, redireciona para a página de login.
   if (!cookie) {
-    if (isAdminRoute || isClerkRoute) {
       const url = request.nextUrl.clone();
       url.pathname = '/';
       return NextResponse.redirect(url);
-    }
-    return NextResponse.next();
   }
 
-  // Rule: If a session cookie exists, validate it and redirect based on role.
+  // Se houver um cookie, valida a sessão e as permissões.
   try {
     const session = JSON.parse(cookie.value);
     const { role } = session;
@@ -36,23 +33,23 @@ export function middleware(request: NextRequest) {
         throw new Error("Invalid session data");
     }
 
-    // Redirect clerks trying to access admin pages.
+    // Redireciona atendentes que tentam acessar páginas de admin.
     if (isAdminRoute && role !== 'admin') {
        const url = request.nextUrl.clone();
-       url.pathname = '/clerk'; // Redirect clerk to their own dashboard
+       url.pathname = '/clerk'; // Redireciona para o painel do atendente
        return NextResponse.redirect(url);
     }
     
-    // Redirect non-clerks/non-admins from clerk pages.
-    if (isClerkRoute && !['clerk', 'admin'].includes(role)) {
-       const url = request.nextUrl.clone();
-       url.pathname = '/'; // Redirect to login
-       return NextResponse.redirect(url);
+    // Se o usuário já está logado, permite o acesso às rotas internas.
+    if (isClerkRoute && (role === 'clerk' || role === 'admin')) {
+      return NextResponse.next();
+    }
+    if (isAdminRoute && role === 'admin') {
+      return NextResponse.next();
     }
     
   } catch (e) {
-    // The cookie is invalid or malformed.
-    // Redirect to login and clear the bad cookie.
+    // Se o cookie for inválido, redireciona para o login e limpa o cookie.
     const url = request.nextUrl.clone();
     url.pathname = '/';
     const response = NextResponse.redirect(url);
@@ -60,10 +57,13 @@ export function middleware(request: NextRequest) {
     return response;
   }
 
-  return NextResponse.next();
+  // Se nenhuma das condições acima for atendida, por segurança, redireciona para o login.
+  const url = request.nextUrl.clone();
+  url.pathname = '/';
+  return NextResponse.redirect(url);
 }
 
 export const config = {
-  // Matcher avoids running middleware on static files and API routes
+  // O matcher evita que o middleware rode em arquivos estáticos, imagens, etc.
   matcher: ['/((?!api/logout|_next/static|_next/image|favicon.ico|notification.mp3).*)'],
 }

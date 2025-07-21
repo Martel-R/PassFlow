@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Logo } from "@/components/layout/logo";
 import { Separator } from "@/components/ui/separator";
-import { MonitorPlay, Ticket } from "lucide-react";
+import { MonitorPlay, Ticket as TicketIcon } from "lucide-react";
 import Link from "next/link";
 
 export default function LoginPage() {
@@ -102,7 +102,7 @@ export default function LoginPage() {
              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <Button variant="outline" asChild>
                     <Link href="/get-ticket">
-                        <Ticket />
+                        <TicketIcon />
                         <span>Retirar Senha</span>
                     </Link>
                 </Button>
