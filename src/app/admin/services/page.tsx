@@ -29,8 +29,16 @@ export default async function AdminServicesPage() {
   const categories = await getCategories();
   const categoryMap = new Map(categories.map(c => [c.id, c.name]));
 
-  async function handleFormAction(data: Omit<Service, 'id'>, id?: string) {
+  async function handleFormAction(formData: FormData) {
     "use server";
+    
+    const id = formData.get("id") as string | undefined;
+    const data = {
+        name: formData.get("name") as string,
+        categoryId: formData.get("categoryId") as string,
+        icon: formData.get("icon") as string,
+    };
+
     try {
       if (id) {
         await updateService(id, data);
