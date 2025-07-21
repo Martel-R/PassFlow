@@ -70,10 +70,6 @@ export function ClerkDashboard() {
       if (session?.counterId) {
         const counter = await getCounterById(session.counterId);
         setClerkCounter(counter);
-      } else if (session?.role === 'admin') {
-         // For demo purposes, an admin can act as counter 1
-         const counter = await getCounterById("1");
-         setClerkCounter(counter);
       }
     };
     if (session) {
@@ -112,7 +108,7 @@ export function ClerkDashboard() {
     }
     
     if (!clerkCounter) {
-        toast({ title: "Erro", description: "Balcão do atendente não configurado.", variant: "destructive" });
+        toast({ title: "Erro", description: "Usuário não está associado a um balcão.", variant: "destructive" });
         return;
     }
 
@@ -214,8 +210,12 @@ export function ClerkDashboard() {
 
   if (!clerkCounter) {
     return (
-        <div className="flex items-center justify-center h-full">
-            <p>Carregando informações do balcão...</p>
+        <div className="flex flex-col items-center justify-center h-full text-center">
+            <p className="text-lg font-semibold">Nenhum balcão associado.</p>
+            <p className="text-muted-foreground">Para usar o painel, seu usuário precisa estar associado a um balcão.</p>
+            {session.role === 'admin' && (
+              <p className="text-sm text-muted-foreground mt-2">Vá para <a href="/admin/users" className="underline text-primary">Gerenciar Usuários</a> para associar um balcão.</p>
+            )}
         </div>
     )
   }

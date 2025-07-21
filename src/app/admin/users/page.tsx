@@ -106,7 +106,7 @@ export default async function AdminUsersPage() {
                 <TableHead>Usuário</TableHead>
                 <TableHead>Perfil</TableHead>
                 <TableHead>Balcão Associado</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
+                <TableHead className="w-[180px] text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

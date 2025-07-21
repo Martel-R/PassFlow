@@ -101,23 +101,22 @@ export function UserForm({
                 </SelectContent>
               </Select>
             </div>
-            {selectedRole === 'clerk' && (
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="counterId" className="text-right">Balcão</Label>
-                <Select name="counterId" defaultValue={initialData?.counterId} required={selectedRole === 'clerk'}>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Selecione um balcão" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {counters.map((counter) => (
-                      <SelectItem key={counter.id} value={counter.id}>
-                        {counter.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="counterId" className="text-right">Balcão</Label>
+              <Select name="counterId" defaultValue={initialData?.counterId} required={selectedRole === 'clerk'}>
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Selecione um balcão (opcional para admin)" />
+                </SelectTrigger>
+                <SelectContent>
+                   <SelectItem value="">Nenhum</SelectItem>
+                  {counters.map((counter) => (
+                    <SelectItem key={counter.id} value={counter.id}>
+                      {counter.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => setIsOpen(false)}>Cancelar</Button>

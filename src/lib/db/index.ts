@@ -435,12 +435,12 @@ export async function addUser(data: UserData): Promise<void> {
     const id = `usr-${Date.now()}`;
     // In a real app, hash the password.
     db.prepare('INSERT INTO users (id, name, username, password, role, counter_id) VALUES (?, ?, ?, ?, ?, ?)')
-      .run(id, data.name, data.username, data.password, data.role, data.role === 'clerk' ? data.counterId : null);
+      .run(id, data.name, data.username, data.password, data.role, data.counterId || null);
 }
 
 export async function updateUser(id: string, data: Partial<UserData>): Promise<void> {
     let fields = 'name = ?, username = ?, role = ?, counter_id = ?';
-    const params: (string | null)[] = [data.name!, data.username!, data.role!, data.role === 'clerk' ? data.counterId! : null];
+    const params: (string | null)[] = [data.name!, data.username!, data.role!, data.counterId || null];
 
     if (data.password) {
         fields += ', password = ?';
