@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { getUserByUsername } from '@/lib/db';
+import { User } from '@/lib/types';
 
 export async function POST(request: Request) {
   const { username, password } = await request.json();
@@ -10,8 +11,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, message: 'Usuário e senha são obrigatórios' }, { status: 400 });
   }
 
-  const user = await getUserByUsername(username);
-
+  const user: User | null = await getUserByUsername(username);
+  
   if (!user || user.password !== password) {
     return NextResponse.json({ success: false, message: 'Credenciais inválidas' }, { status: 401 });
   }
@@ -20,7 +21,7 @@ export async function POST(request: Request) {
       userId: user.id,
       name: user.name,
       role: user.role, 
-      counterId: user.counter_id, // counter_id can be null (for admin)
+      counterId: user.counter_id || undefined,
   };
   
   cookies().set('auth-session', JSON.stringify(sessionData), {

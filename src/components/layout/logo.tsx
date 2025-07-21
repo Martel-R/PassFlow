@@ -1,25 +1,31 @@
 
 "use client"
 
-import { getSetting } from "@/lib/db";
 import { Ticket } from "lucide-react";
-import { useEffect, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
-export function Logo() {
-  const [name, setName] = useState("Carregando...");
+// The logo now accepts the organization name as a prop
+// to avoid client-side data fetching on public pages.
+export function Logo({ organizationName }: { organizationName?: string | null }) {
+  const pathname = usePathname();
+  const isLoginPage = pathname === '/';
 
-  useEffect(() => {
-    const fetchName = async () => {
-      const orgName = await getSetting("organizationName");
-      setName(orgName || "Nome da Organização");
-    };
-    fetchName();
-  }, []);
-
-  return (
-    <div className="flex items-center gap-2 text-lg font-semibold text-primary">
+  const content = (
+     <div className="flex items-center gap-2 text-lg font-semibold text-primary">
       <Ticket className="h-6 w-6" />
-      <span>{name}</span>
+      <span>{organizationName || "Sistema"}</span>
     </div>
+  );
+
+  // The logo on the login page should not be a link to itself.
+  if (isLoginPage) {
+    return content;
+  }
+  
+  return (
+    <Link href="/" aria-label="Voltar para a página inicial">
+      {content}
+    </Link>
   );
 }

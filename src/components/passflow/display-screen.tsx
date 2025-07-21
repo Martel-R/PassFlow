@@ -13,7 +13,7 @@ import { Volume2, Clock } from "lucide-react";
 import Image from "next/image";
 import { Logo } from "../layout/logo";
 
-export function DisplayScreen() {
+export function DisplayScreen({ organizationName }: { organizationName?: string | null }) {
   const calledTicket = useCalledTicket();
   const callHistory = useCallHistory();
   const [animationKey, setAnimationKey] = useState(0);
@@ -32,7 +32,7 @@ export function DisplayScreen() {
       <div className="flex flex-col flex-1 p-4 md:p-8">
         <header className="mb-4 md:mb-8">
           <h1 className="text-3xl md:text-5xl font-bold text-primary">
-            <Logo />
+            <Logo organizationName={organizationName} />
           </h1>
         </header>
         <main className="flex-1 flex flex-col items-center justify-center">

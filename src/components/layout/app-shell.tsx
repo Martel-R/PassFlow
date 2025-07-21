@@ -35,7 +35,7 @@ import {
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { useInitializeStore, useSession } from "@/lib/store";
+import { useInitializeStore, usePassFlowActions, useSession, useOrganizationName } from "@/lib/store";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "../ui/button";
 
@@ -44,10 +44,12 @@ function AppHeader({ className, ...props }: React.ComponentProps<"header">) {
   const { isMobile, open, setOpen, openMobile, setOpenMobile } = useSidebar();
   const router = useRouter();
   const { toast } = useToast();
+  const { clearSession } = usePassFlowActions();
 
   const handleLogout = async () => {
     const res = await fetch('/api/logout', { method: 'POST' });
     if (res.ok) {
+      clearSession();
       toast({
         title: "Logout realizado",
         description: "Você foi desconectado com sucesso.",
@@ -81,10 +83,10 @@ function AppHeader({ className, ...props }: React.ComponentProps<"header">) {
 }
 
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({ children, organizationName }: { children: React.ReactNode, organizationName?: string | null }) {
   const pathname = usePathname();
+  useInitializeStore({ organizationName }); 
   const session = useSession();
-  useInitializeStore(); 
 
   const isActive = (path: string) => {
     return pathname.startsWith(path);
@@ -96,20 +98,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   if (!showShell) {
     return <>{children}</>;
   }
-  
-  const showSidebar = !["/display", "/get-ticket"].includes(pathname);
-
-
-  if (!showSidebar) {
-    return <>{children}</>;
-  }
 
   return (
     <SidebarProvider>
       <Sidebar>
         <SidebarHeader>
           <div className="flex items-center justify-between">
-            <Logo />
+            <Logo organizationName={organizationName} />
              {/* The trigger is now in AppHeader, but we keep one here for desktop view */}
             <div className="hidden md:block">
                 <SidebarTrigger />
