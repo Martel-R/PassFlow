@@ -3,16 +3,30 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import Image from "next/image";
 
-export function Logo({ organizationName }: { organizationName?: string | null }) {
+interface LogoProps {
+  organizationName?: string | null;
+  organizationLogo?: string | null;
+}
+
+export function Logo({ organizationName, organizationLogo }: LogoProps) {
   const pathname = usePathname();
   const isLoginPage = pathname === '/';
 
-  // Na página de login, sempre mostrar "PassFlow". Nas outras, o nome da organização.
   const displayName = isLoginPage ? "PassFlow" : (organizationName || "PassFlow");
 
   const content = (
-     <div className="flex items-center gap-2 text-lg font-semibold text-primary">
+    <div className="flex items-center gap-2 text-lg font-semibold text-primary">
+      {organizationLogo && !isLoginPage ? (
+        <Image 
+          src={organizationLogo} 
+          alt={`${displayName} logo`} 
+          width={32} 
+          height={32} 
+          className="h-8 w-8 object-contain"
+        />
+      ) : (
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 24 24"
@@ -27,11 +41,12 @@ export function Logo({ organizationName }: { organizationName?: string | null })
           <path d="M9 12h6" />
           <path d="m12 9 3 3-3 3" />
         </svg>
+      )}
       <span className="font-bold">{displayName}</span>
     </div>
   );
 
-  // O logo na página de login não deve ser um link para si mesmo.
+  // The logo on the login page should not be a link to itself.
   if (isLoginPage) {
     return content;
   }

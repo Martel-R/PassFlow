@@ -4,7 +4,7 @@
 import { create } from 'zustand';
 import { Ticket } from './types';
 import { getTickets } from './db';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import Cookies from 'js-cookie';
 
 interface Session {
@@ -14,18 +14,22 @@ interface Session {
     counterId?: string;
 }
 
+interface InitializeParams {
+    organizationName?: string | null;
+    organizationLogo?: string | null;
+}
 
 // This custom hook ensures that the store is initialized only once
-export function useInitializeStore({ organizationName }: { organizationName?: string | null }) {
+export function useInitializeStore({ organizationName, organizationLogo }: InitializeParams) {
     const { initialize } = usePassFlowActions();
     const initialized = useRef(false);
 
     useEffect(() => {
         if (!initialized.current) {
-            initialize({ organizationName });
+            initialize({ organizationName, organizationLogo });
             initialized.current = true;
         }
-    }, [initialize, organizationName]);
+    }, [initialize, organizationName, organizationLogo]);
 };
 
 
@@ -36,6 +40,9 @@ export function useSession() {
 
 // Hook to get organization name from store
 export const useOrganizationName = () => usePassFlowStore((state) => state.organizationName);
+
+// Hook to get organization logo from store
+export const useOrganizationLogo = () => usePassFlowStore((state) => state.organizationLogo);
 
 
 export type CalledTicket = {
@@ -50,8 +57,9 @@ type PassFlowState = {
   callHistory: CalledTicket[];
   session: Session | null;
   organizationName: string | null;
+  organizationLogo: string | null;
   actions: {
-    initialize: (params: { organizationName?: string | null }) => Promise<void>;
+    initialize: (params: InitializeParams) => Promise<void>;
     refreshTickets: () => Promise<void>;
     callTicket: (ticket: Ticket, counterName: string) => void;
     setSession: (session: Session | null) => void;
@@ -65,16 +73,17 @@ const usePassFlowStore = create<PassFlowState>((set, get) => ({
   callHistory: [],
   session: null,
   organizationName: null,
+  organizationLogo: null,
   actions: {
-    initialize: async ({ organizationName }) => {
+    initialize: async ({ organizationName, organizationLogo }) => {
         try {
             const tickets = await getTickets();
             const cookie = Cookies.get('auth-session');
             const session = cookie ? JSON.parse(cookie) : null;
-            set({ tickets, session, organizationName: organizationName || null });
+            set({ tickets, session, organizationName: organizationName || null, organizationLogo: organizationLogo || null });
         } catch (error) {
             console.error("Failed to initialize store:", error);
-            set({ organizationName: organizationName || null });
+            set({ organizationName: organizationName || null, organizationLogo: organizationLogo || null });
         }
     },
     refreshTickets: async () => {

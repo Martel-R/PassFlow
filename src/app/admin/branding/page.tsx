@@ -6,11 +6,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { getSettings, updateSettings } from "@/lib/db";
+import { getSettings, updateSettings, updateSetting } from "@/lib/db";
 import { BrandingForm } from "./branding-form";
 import { revalidatePath } from "next/cache";
 
-// Color conversion utilities moved here
 function hexToHsl(hex: string): string {
   let r = 0, g = 0, b = 0;
   if (hex.length === 4) {
@@ -61,9 +60,17 @@ function hslToHex(hslStr: string): string {
   return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 }
 
+async function fileToDataUri(file: File): Promise<string> {
+    const buffer = await file.arrayBuffer();
+    const base64 = Buffer.from(buffer).toString('base64');
+    return `data:${file.type};base64,${base64}`;
+}
+
+
 export default async function AdminBrandingPage() {
   const settings = await getSettings([
     "organizationName",
+    "organizationLogo",
     "theme.primary",
     "theme.accent",
     "theme.background",
@@ -71,6 +78,7 @@ export default async function AdminBrandingPage() {
 
   const brandingData = {
     name: settings.organizationName || "Nome da Organização",
+    logo: settings.organizationLogo || null,
     primaryColor: hslToHex(settings["theme.primary"] || "210 70% 50%"),
     accentColor: hslToHex(settings["theme.accent"] || "180 60% 40%"),
     backgroundColor: hslToHex(settings["theme.background"] || "210 20% 95%"),
@@ -79,14 +87,27 @@ export default async function AdminBrandingPage() {
   async function handleUpdateBranding(formData: FormData) {
     "use server";
     
-    const settingsToUpdate = {
+    const settingsToUpdate: Record<string, string> = {
       organizationName: formData.get("name") as string,
       "theme.primary": hexToHsl(formData.get("primaryColor") as string),
       "theme.accent": hexToHsl(formData.get("accentColor") as string),
       "theme.background": hexToHsl(formData.get("backgroundColor") as string),
     };
-
+    
     await updateSettings(settingsToUpdate);
+
+    const logoFile = formData.get("logo") as File;
+    const removeLogo = formData.get("removeLogo") === 'true';
+
+    if (removeLogo) {
+        await updateSetting('organizationLogo', '');
+    } else if (logoFile && logoFile.size > 0) {
+        if (logoFile.size > 200 * 1024) { // 200KB size limit
+             return { success: false, message: "O arquivo da logo é muito grande. O limite é de 200KB." };
+        }
+        const logoDataUri = await fileToDataUri(logoFile);
+        await updateSetting('organizationLogo', logoDataUri);
+    }
     
     revalidatePath("/", "layout");
     
@@ -101,7 +122,7 @@ export default async function AdminBrandingPage() {
             Branding Personalizado
           </h2>
           <p className="text-muted-foreground">
-            Ajuste o nome, as cores e futuramente o logo para se adequar à sua marca.
+            Ajuste o nome, as cores e o logo para se adequar à sua marca.
           </p>
         </div>
       </div>
@@ -109,7 +130,7 @@ export default async function AdminBrandingPage() {
         <CardHeader>
           <CardTitle>Identidade da Organização</CardTitle>
           <CardDescription>
-            Atualize o nome e as cores do sistema.
+            Atualize o nome, as cores e o logo do sistema.
           </CardDescription>
         </CardHeader>
         <CardContent>

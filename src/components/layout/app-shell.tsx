@@ -83,9 +83,17 @@ function AppHeader({ className, ...props }: React.ComponentProps<"header">) {
 }
 
 
-export function AppShell({ children, organizationName }: { children: React.ReactNode, organizationName?: string | null }) {
+export function AppShell({ 
+    children, 
+    organizationName, 
+    organizationLogo 
+}: { 
+    children: React.ReactNode, 
+    organizationName?: string | null,
+    organizationLogo?: string | null,
+}) {
   const pathname = usePathname();
-  useInitializeStore({ organizationName }); 
+  useInitializeStore({ organizationName, organizationLogo }); 
   const session = useSession();
 
   const isActive = (path: string) => {
@@ -104,7 +112,7 @@ export function AppShell({ children, organizationName }: { children: React.React
       <Sidebar>
         <SidebarHeader>
           <div className="flex items-center justify-between">
-            <Logo organizationName={organizationName} />
+            <Logo organizationName={organizationName} organizationLogo={organizationLogo} />
              {/* The trigger is now in AppHeader, but we keep one here for desktop view */}
             <div className="hidden md:block">
                 <SidebarTrigger />

@@ -26,12 +26,14 @@ export default async function RootLayout({
 }>) {
   const settings = await getSettings([
     'organizationName',
+    'organizationLogo',
     'theme.primary',
     'theme.accent',
     'theme.background',
   ]);
 
   const organizationName = settings.organizationName;
+  const organizationLogo = settings.organizationLogo;
 
   const themeStyle: CSSProperties = {
     '--primary': settings['theme.primary'] || '210 70% 50%',
@@ -47,7 +49,7 @@ export default async function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        <AppShell organizationName={organizationName}>
+        <AppShell organizationName={organizationName} organizationLogo={organizationLogo}>
           {children}
         </AppShell>
         <Toaster />
