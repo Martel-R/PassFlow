@@ -335,11 +335,11 @@ export function ClerkDashboard() {
             </DialogHeader>
             <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                    <label htmlFor="notes" className="flex items-center gap-2"><Clock /> Observações</label>
+                    <Label htmlFor="notes" className="flex items-center gap-2"><Clock /> Observações</Label>
                     <Textarea id="notes" placeholder="Digite as observações do atendimento..." value={notes} onChange={(e) => setNotes(e.target.value)} />
                 </div>
                  <div className="space-y-2">
-                    <label htmlFor="tags" className="flex items-center gap-2"><Tag /> Tags</label>
+                    <Label htmlFor="tags" className="flex items-center gap-2"><Tag /> Tags</Label>
                     <Input id="tags" placeholder="Ex: problema_resolvido, cliente_satisfeito" value={tags} onChange={(e) => setTags(e.target.value)} />
                     <p className="text-sm text-muted-foreground">Separe as tags por vírgula.</p>
                 </div>
