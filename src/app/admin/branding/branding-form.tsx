@@ -9,9 +9,9 @@ import { useToast } from "@/hooks/use-toast";
 
 interface BrandingData {
   name: string;
-  primaryColor: string;
-  accentColor: string;
-  backgroundColor: string;
+  primaryColor: string; // HEX
+  accentColor: string; // HEX
+  backgroundColor: string; // HEX
 }
 
 interface BrandingFormProps {
@@ -38,6 +38,7 @@ export function BrandingForm({ initialData, updateBrandingAction }: BrandingForm
         title: "Sucesso!",
         description: result.message,
       });
+      // A página será recarregada pelo revalidatePath no servidor
     } else {
       toast({
         title: "Erro",
@@ -60,43 +61,48 @@ export function BrandingForm({ initialData, updateBrandingAction }: BrandingForm
         />
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="space-y-2">
-            <Label htmlFor="primaryColor">Cor Primária (HSL)</Label>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="flex flex-col items-center gap-2">
+            <Label htmlFor="primaryColor">Cor Primária</Label>
             <Input
-            id="primaryColor"
-            name="primaryColor"
-            value={data.primaryColor}
-            onChange={handleChange}
-            placeholder="Ex: 210 70% 50%"
+              id="primaryColor"
+              name="primaryColor"
+              type="color"
+              value={data.primaryColor}
+              onChange={handleChange}
+              className="h-16 w-16 p-1"
             />
+             <span className="text-sm text-muted-foreground">{data.primaryColor}</span>
         </div>
-        <div className="space-y-2">
-            <Label htmlFor="accentColor">Cor de Destaque (HSL)</Label>
+        <div className="flex flex-col items-center gap-2">
+            <Label htmlFor="accentColor">Cor de Destaque</Label>
             <Input
-            id="accentColor"
-            name="accentColor"
-            value={data.accentColor}
-            onChange={handleChange}
-            placeholder="Ex: 180 60% 40%"
+              id="accentColor"
+              name="accentColor"
+              type="color"
+              value={data.accentColor}
+              onChange={handleChange}
+              className="h-16 w-16 p-1"
             />
+            <span className="text-sm text-muted-foreground">{data.accentColor}</span>
         </div>
-        <div className="space-y-2">
-            <Label htmlFor="backgroundColor">Cor de Fundo (HSL)</Label>
+        <div className="flex flex-col items-center gap-2">
+            <Label htmlFor="backgroundColor">Cor de Fundo</Label>
             <Input
-            id="backgroundColor"
-            name="backgroundColor"
-            value={data.backgroundColor}
-            onChange={handleChange}
-            placeholder="Ex: 210 20% 95%"
+              id="backgroundColor"
+              name="backgroundColor"
+              type="color"
+              value={data.backgroundColor}
+              onChange={handleChange}
+              className="h-16 w-16 p-1"
             />
+            <span className="text-sm text-muted-foreground">{data.backgroundColor}</span>
         </div>
       </div>
        <p className="text-sm text-muted-foreground">
-        Insira os valores no formato HSL sem a função `hsl()`. Exemplo: `210 70% 50%`.
+        Clique nos quadrados para abrir o seletor de cores.
       </p>
 
-      {/* Futuramente podemos adicionar o upload do logo aqui */}
       <Button type="submit">Salvar Alterações</Button>
     </form>
   );
