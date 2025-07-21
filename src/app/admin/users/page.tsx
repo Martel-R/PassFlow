@@ -29,12 +29,17 @@ export default async function AdminUsersPage() {
     "use server";
     const id = formData.get("id") as string | undefined;
     
+    let counterIdValue = formData.get("counterId") as string | undefined;
+    if (counterIdValue === 'none') {
+        counterIdValue = undefined;
+    }
+
     const data = {
         name: formData.get("name") as string,
         username: formData.get("username") as string,
         password: formData.get("password") as string,
         role: formData.get("role") as 'admin' | 'clerk',
-        counterId: formData.get("counterId") as string | undefined,
+        counterId: counterIdValue,
     }
 
     if (!data.name || !data.username || !data.role) {
