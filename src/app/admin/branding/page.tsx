@@ -1,17 +1,10 @@
 
 import { getSettings, updateSettings, updateSetting } from "@/lib/db";
-import { BrandingForm } from "./branding-form";
 import { revalidatePath } from "next/cache";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-
+import { BrandingPageClient } from "./branding-page-client";
 
 function hexToHsl(hex: string): string {
+  if (!hex) return '0 0% 0%';
   let r = 0, g = 0, b = 0;
   if (hex.length === 4) {
     r = parseInt(hex[1] + hex[1], 16);
@@ -41,7 +34,7 @@ function hexToHsl(hex: string): string {
   return `${h} ${s}% ${l}%`;
 }
 
-function hslToHex(hslStr: string): string {
+function hslToHex(hslStr: string | null): string {
   if (!hslStr || typeof hslStr !== 'string') return "#000000";
   const match = hslStr.match(/(\d+)\s+(\d+)%\s+(\d+)%/);
   if (!match) return "#000000";
@@ -93,9 +86,9 @@ export default async function AdminBrandingPage() {
   const brandingData = {
     name: settings.organizationName || "Nome da Organização",
     logo: settings.organizationLogo || null,
-    primaryColor: hslToHex(settings["theme.primary"] || "210 70% 50%"),
-    accentColor: hslToHex(settings["theme.accent"] || "180 60% 40%"),
-    backgroundColor: hslToHex(settings["theme.background"] || "210 20% 95%"),
+    primaryColor: hslToHex(settings["theme.primary"]),
+    accentColor: hslToHex(settings["theme.accent"]),
+    backgroundColor: hslToHex(settings["theme.background"]),
     advertisementBanner: settings.advertisementBanner || null,
   };
 
@@ -146,31 +139,9 @@ export default async function AdminBrandingPage() {
   }
 
   return (
-     <div className="flex-1 space-y-4 p-4 sm:p-8 pt-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">
-            Branding Personalizado
-          </h2>
-          <p className="text-muted-foreground">
-            Ajuste o nome, as cores, o logo e o banner para se adequar à sua marca.
-          </p>
-        </div>
-      </div>
-      <Card>
-        <CardHeader>
-          <CardTitle>Identidade da Organização</CardTitle>
-          <CardDescription>
-            Atualize o nome, as cores, o logo e o banner do sistema.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <BrandingForm
-            initialData={brandingData}
-            updateBrandingAction={handleUpdateBranding}
-          />
-        </CardContent>
-      </Card>
-    </div>
+    <BrandingPageClient
+      initialData={brandingData}
+      updateBrandingAction={handleUpdateBranding}
+    />
   );
 }
