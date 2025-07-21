@@ -96,8 +96,11 @@ export function ClerkDashboard() {
         .filter(({ service }) => service !== null)
         .sort((a, b) => {
              if (!a.service || !b.service) return 0;
-             if (a.service.category === 'priority' && b.service.category !== 'priority') return -1;
-             if (a.service.category !== 'priority' && b.service.category === 'priority') return 1;
+             // Simple priority check: "priority" category comes first
+             const aIsPriority = clerkCounter.assignedCategories.includes(a.service.category) && a.service.category === 'priority';
+             const bIsPriority = clerkCounter.assignedCategories.includes(b.service.category) && b.service.category === 'priority';
+             if (aIsPriority && !bIsPriority) return -1;
+             if (!aIsPriority && bIsPriority) return 1;
              return a.ticket.timestamp.getTime() - b.ticket.timestamp.getTime();
         })
         .find(({ service }) => {

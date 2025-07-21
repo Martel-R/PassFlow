@@ -18,13 +18,13 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { getServices, addTicket as dbAddTicket } from "@/lib/db";
+import { getServices, addTicket as dbAddTicket, getCategories } from "@/lib/db";
 import { Ticket as TicketIcon, ArrowRight, UserCheck, Briefcase } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { usePassFlowActions } from "@/lib/store";
-import type { Service, Ticket } from "@/lib/types";
+import type { Service, Ticket, Category } from "@/lib/types";
 
-const serviceIcons: Record<Service['category'], React.ReactNode> = {
+const serviceIcons: Record<string, React.ReactNode> = {
   priority: <UserCheck className="h-8 w-8 text-primary" />,
   general: <Briefcase className="h-8 w-8 text-primary" />,
 };
@@ -45,12 +45,13 @@ export function TicketSelection() {
   }, []);
 
   useEffect(() => {
+    let timer: NodeJS.Timeout;
     if (generatedTicket) {
-      const timer = setTimeout(() => {
+      timer = setTimeout(() => {
         handleCloseDialog();
       }, 3000);
-      return () => clearTimeout(timer);
     }
+    return () => clearTimeout(timer);
   }, [generatedTicket]);
 
   const handleServiceClick = async (service: Service) => {
@@ -78,6 +79,16 @@ export function TicketSelection() {
     setSelectedService(null);
     setGeneratedTicket(null);
   };
+  
+  const getIconForCategory = (categoryId: string) => {
+    // A simple logic to return a specific icon based on category name or id
+    // This can be expanded with a more robust mapping.
+    if (categoryId.includes('priority')) {
+      return serviceIcons['priority'];
+    }
+    return serviceIcons['general'];
+  }
+
 
   return (
     <>
@@ -97,7 +108,7 @@ export function TicketSelection() {
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div>
-                  {serviceIcons[service.category]}
+                  {getIconForCategory(service.category)}
                   <CardTitle className="mt-4">{service.name}</CardTitle>
                 </div>
                 <ArrowRight className="h-6 w-6 text-muted-foreground" />
@@ -112,7 +123,7 @@ export function TicketSelection() {
         ))}
       </div>
 
-      <Dialog open={!!generatedTicket} onOpenChange={handleCloseDialog}>
+      <Dialog open={!!generatedTicket} onOpenChange={(isOpen) => !isOpen && handleCloseDialog()}>
         <DialogContent className="sm:max-w-md text-center">
           <DialogHeader>
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mb-4">
@@ -120,7 +131,7 @@ export function TicketSelection() {
             </div>
             <DialogTitle className="text-2xl">Senha Gerada!</DialogTitle>
             <DialogDescription>
-              Aguarde para ser chamado. Este aviso fechará em 3 segundos.
+              Aguarde para ser chamado. Este aviso fechará automaticamente.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">

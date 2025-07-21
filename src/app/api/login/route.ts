@@ -17,11 +17,10 @@ export async function POST(request: Request) {
   }
 
   const sessionData = { 
-      role: user.role, 
       userId: user.id,
       name: user.name,
+      role: user.role, 
       counterId: user.counter_id,
-      loggedInAt: Date.now() 
   };
   
   cookies().set('auth-session', JSON.stringify(sessionData), {
