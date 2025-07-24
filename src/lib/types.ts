@@ -28,7 +28,7 @@ export type TicketType = {
   icon: string;
 };
 
-export type TicketStatus = "waiting" | "in-progress" | "finished" | "cancelled";
+export type TicketStatus = "waiting" | "in-progress" | "finished" | "cancelled" | "free";
 
 export type Ticket = {
   id: string;
@@ -77,3 +77,20 @@ export type TicketHistoryEntry = {
     notes: string | null;
     tags: string | null;
 }
+
+export type LiveClerkState = {
+    clerkId: string;
+    clerkName: string;
+    status: 'in-progress' | 'free';
+    ticketNumber: string | null;
+    serviceName: string | null;
+    counterName: string | null;
+    calledTimestamp: number | null;
+};
+
+export type ClerkPerformanceStats = {
+    clerkId: string;
+    clerkName: string;
+    totalFinished: number;
+    avgServiceTimeSeconds: number;
+};

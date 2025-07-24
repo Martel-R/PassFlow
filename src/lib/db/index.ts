@@ -11,6 +11,8 @@ import {
   User,
   TicketType,
   TicketHistoryEntry,
+  LiveClerkState,
+  ClerkPerformanceStats,
 } from '../types';
 import { mockCategories, mockCounters, mockServices, mockUsers, mockTicketTypes } from '../mock-data';
 
@@ -584,5 +586,60 @@ export async function getTicketHistory(): Promise<TicketHistoryEntry[]> {
         WHERE t.status = 'finished'
         ORDER BY t.finished_timestamp DESC
     `).all() as any[];
+    return rows;
+}
+
+// Monitoring Functions
+
+export async function getLiveClerkState(): Promise<LiveClerkState[]> {
+    const rows = db.prepare(`
+        SELECT
+            u.id as clerkId,
+            u.name as clerkName,
+            COALESCE(t.status, 'free') as status,
+            t.number as ticketNumber,
+            t.service_name as serviceName,
+            c.name as counterName,
+            t.called_timestamp as calledTimestamp
+        FROM users u
+        LEFT JOIN (
+            SELECT * FROM tickets WHERE status = 'in-progress'
+        ) t ON u.id = t.clerk_id
+        LEFT JOIN counters c ON u.counter_id = c.id
+        WHERE u.role = 'clerk' OR (u.role = 'admin' AND u.counter_id IS NOT NULL)
+        ORDER BY u.name
+    `).all() as any[];
+
+    return rows;
+}
+
+export async function getClerkPerformanceStats(
+    { from, to }: { from?: Date, to?: Date }
+): Promise<ClerkPerformanceStats[]> {
+    let whereClause = "WHERE t.status = 'finished'";
+    const params: number[] = [];
+    if (from) {
+        whereClause += " AND t.finished_timestamp >= ?";
+        params.push(from.getTime());
+    }
+    if (to) {
+        whereClause += " AND t.finished_timestamp <= ?";
+        params.push(to.getTime());
+    }
+
+    const query = `
+        SELECT
+            u.id as clerkId,
+            u.name as clerkName,
+            COUNT(t.id) as totalFinished,
+            AVG(t.finished_timestamp - t.called_timestamp) / 1000 as avgServiceTimeSeconds
+        FROM users u
+        JOIN tickets t ON u.id = t.clerk_id
+        ${whereClause}
+        GROUP BY u.id, u.name
+        ORDER BY totalFinished DESC, u.name
+    `;
+
+    const rows = db.prepare(query).all(...params) as any[];
     return rows;
 }
