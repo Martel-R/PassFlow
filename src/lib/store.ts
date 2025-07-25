@@ -5,13 +5,6 @@ import { create } from 'zustand';
 import { Ticket } from './types';
 import { getTickets } from './db';
 
-// --- Broadcast Channel for cross-tab sync ---
-let channel: BroadcastChannel | null = null;
-if (typeof window !== 'undefined') {
-    channel = new BroadcastChannel('passflow-sync');
-}
-// ---
-
 export interface Session {
     userId: string;
     name: string;
@@ -47,11 +40,10 @@ type PassFlowState = {
   organizationLogo: string | null;
   actions: {
     initialize: (params: InitializeParams) => Promise<void>;
-    refreshTickets: (notify?: boolean) => Promise<void>;
+    refreshTickets: () => Promise<void>;
     callTicket: (ticket: Ticket, counterName: string) => void;
     setSession: (session: Session | null) => void;
     clearSession: () => void;
-    listenToBroadcast: () => void;
   };
 };
 
@@ -81,18 +73,16 @@ export const usePassFlowStore = create<PassFlowState>((set, get) => ({
             });
         }
     },
-    refreshTickets: async (notify = false) => {
+    refreshTickets: async () => {
         try {
             const tickets = await getTickets();
             set({ tickets });
-            if (notify && channel) {
-                channel.postMessage({ type: 'tickets_updated' });
-            }
         } catch (error) {
             console.error("Failed to refresh tickets from DB:", error);
         }
     },
     callTicket: (ticket, counterName) => {
+      // This is now mainly for local UI updates if needed, but primary sync is via polling
       const newCall: CalledTicket = {
         number: ticket.number,
         counter: counterName,
@@ -104,29 +94,9 @@ export const usePassFlowStore = create<PassFlowState>((set, get) => ({
             ? [newCall, ...state.callHistory].slice(0, 10) 
             : state.callHistory,
       }));
-       if (channel) {
-          channel.postMessage({ type: 'ticket_called', payload: newCall });
-       }
     },
     setSession: (session) => set({ session }),
     clearSession: () => set({ session: null }),
-    listenToBroadcast: () => {
-        if (channel) {
-            channel.onmessage = async (event) => {
-                const { type, payload } = event.data;
-                if (type === 'ticket_called') {
-                     set((state) => ({
-                        calledTicket: payload,
-                        callHistory: [payload, ...state.callHistory].slice(0, 10),
-                    }));
-                }
-                if (type === 'tickets_updated') {
-                    // Another tab signaled an update, so this tab should refresh its data
-                    await get().actions.refreshTickets();
-                }
-            };
-        }
-    },
   },
 }));
 
@@ -134,3 +104,5 @@ export const useTickets = () => usePassFlowStore((state) => state.tickets);
 export const useCalledTicket = () => usePassFlowStore((state) => state.calledTicket);
 export const useCallHistory = () => usePassFlowStore((state) => state.callHistory);
 export const usePassFlowActions = () => usePassFlowStore((state) => state.actions);
+
+    

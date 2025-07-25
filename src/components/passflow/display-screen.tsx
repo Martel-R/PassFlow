@@ -14,12 +14,13 @@ import {
   DialogTitle,
   DialogHeader,
 } from "@/components/ui/dialog";
-import { useCalledTicket, useCallHistory, useOrganizationName, useOrganizationLogo } from "@/lib/store";
 import { Volume2, Clock, Youtube, Image as ImageIcon } from "lucide-react";
 import Image from "next/image";
 import { Logo } from "../layout/logo";
-import type { AdvertisementMedia } from "@/lib/types";
+import type { AdvertisementMedia, Ticket } from "@/lib/types";
 import YouTube from 'react-youtube';
+import { getTickets } from "@/lib/db";
+import { useOrganizationLogo, useOrganizationName } from "@/lib/store";
 
 interface DisplayScreenProps {
   organizationName?: string | null;
@@ -47,13 +48,15 @@ export function DisplayScreen({
   organizationName: initialName,
   mediaItems
 }: DisplayScreenProps) {
-  const calledTicket = useCalledTicket();
-  const callHistory = useCallHistory();
+  const [callHistory, setCallHistory] = useState<Ticket[]>([]);
+  const [calledTicket, setCalledTicket] = useState<Ticket | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [animationKey, setAnimationKey] = useState(0);
 
   const organizationName = useOrganizationName() ?? initialName;
   const organizationLogo = useOrganizationLogo();
+  
+  const lastCalledTicketId = useRef<string | null>(null);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -80,6 +83,31 @@ export function DisplayScreen({
     };
   }, [currentIndex, mediaItems, currentMedia, advanceSlide]);
 
+  useEffect(() => {
+    const fetchAndUpdateTickets = async () => {
+        const allTickets = await getTickets();
+
+        // Update call history with all tickets that have a called_timestamp
+        const updatedHistory = allTickets
+            .filter(t => t.calledTimestamp)
+            .sort((a, b) => new Date(b.calledTimestamp!).getTime() - new Date(a.calledTimestamp!).getTime());
+        
+        setCallHistory(updatedHistory);
+        
+        // Check for the newest called ticket
+        const latestCalled = updatedHistory[0];
+
+        if (latestCalled && latestCalled.id !== lastCalledTicketId.current) {
+            lastCalledTicketId.current = latestCalled.id;
+            setCalledTicket(latestCalled); // This will be the ticket to display in the modal
+        }
+    };
+
+    fetchAndUpdateTickets(); // Initial fetch
+    const intervalId = setInterval(fetchAndUpdateTickets, 3000); // Poll every 3 seconds
+
+    return () => clearInterval(intervalId);
+  }, []);
 
   useEffect(() => {
     if (calledTicket) {
@@ -179,8 +207,8 @@ export function DisplayScreen({
             </CardHeader>
             <CardContent>
               <ul className="space-y-2 md:space-y-4">
-                {callHistory.slice(0, 8).map((call, index) => (
-                  <li key={index} className="flex justify-between items-center text-lg md:text-xl p-2 md:p-3 bg-secondary rounded-lg">
+                {callHistory.slice(0, 8).map((call) => (
+                  <li key={call.id} className="flex justify-between items-center text-lg md:text-xl p-2 md:p-3 bg-secondary rounded-lg">
                     <span className="font-bold">{call.number}</span>
                     <span className="text-muted-foreground">{call.counter}</span>
                   </li>
@@ -211,3 +239,5 @@ export function DisplayScreen({
     </>
   );
 }
+
+    

@@ -314,13 +314,16 @@ export async function getTickets(): Promise<Ticket[]> {
             t.id, 
             t.number, 
             t.service_name as serviceName, 
-            t.created_timestamp as timestamp, 
+            t.created_timestamp,
+            t.called_timestamp,
+            t.finished_timestamp,
             t.status,
             t.priority_weight as priorityWeight,
             c.name as counter, 
             t.notes, 
             t.tags,
-            t.service_id as serviceId
+            t.service_id as serviceId,
+            t.clerk_id as clerkId
         FROM tickets t
         LEFT JOIN counters c ON t.counter_id = c.id
         ORDER BY t.created_timestamp DESC
@@ -328,7 +331,10 @@ export async function getTickets(): Promise<Ticket[]> {
 
     return rows.map(row => ({
         ...row,
-        timestamp: new Date(row.timestamp),
+        timestamp: new Date(row.created_timestamp),
+        createdTimestamp: new Date(row.created_timestamp),
+        calledTimestamp: row.called_timestamp ? new Date(row.called_timestamp) : undefined,
+        finishedTimestamp: row.finished_timestamp ? new Date(row.finished_timestamp) : undefined,
         tags: row.tags ? row.tags.split(',') : [],
     }));
 }
@@ -674,3 +680,5 @@ export async function getClerkPerformanceStats(
     const rows = db.prepare(query).all(...params) as any[];
     return rows;
 }
+
+    

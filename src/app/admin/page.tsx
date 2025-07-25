@@ -111,7 +111,7 @@ export default function AdminPage() {
   const handleResetTickets = async () => {
     try {
       const { count } = await resetTickets();
-      await refreshTickets(true); // Pass true to notify other tabs
+      await refreshTickets();
       toast({
         title: "Senhas Zeradas com Sucesso!",
         description: `${count} senha(s) foram canceladas. A contagem para novas senhas foi reiniciada.`,
@@ -187,3 +187,5 @@ export default function AdminPage() {
     </div>
   );
 }
+
+    

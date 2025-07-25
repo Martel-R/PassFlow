@@ -52,12 +52,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { getCounterById, finalizeTicket, updateTicketStatus, getServicesForCounter, getUserById, updateUserStatus } from "@/lib/db";
+import { getCounterById, finalizeTicket, updateTicketStatus, getServicesForCounter, getUserById, updateUserStatus, getTickets } from "@/lib/db";
 import { Ticket, Counter, Service, ClerkStatus } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useTickets, usePassFlowActions, usePassFlowStore } from "@/lib/store";
+import { useTickets, usePassFlowActions, usePassFlowStore, useCalledTicket, useCallHistory } from "@/lib/store";
 
 
 function StatusSelector({ userId, onStatusChange }: { userId: string, onStatusChange: () => void }) {
@@ -169,9 +169,14 @@ export function ClerkDashboard() {
   const [serviceStartTime, setServiceStartTime] = useState<number | null>(null);
   const [serviceDuration, setServiceDuration] = useState<number>(0);
   
-  // Fetch initial data on component mount
+  // Fetch initial data & set up polling
   useEffect(() => {
     refreshTickets();
+    const intervalId = setInterval(() => {
+        refreshTickets();
+    }, 5000); // Poll every 5 seconds
+
+    return () => clearInterval(intervalId);
   }, [refreshTickets]);
 
   const fetchClerkData = async () => {
@@ -203,6 +208,15 @@ export function ClerkDashboard() {
       if (timer) clearInterval(timer);
     };
   }, [serviceStartTime]);
+  
+  // Sync local active ticket with global state
+   useEffect(() => {
+    if (session?.userId) {
+        const currentClerkTicket = tickets.find(t => t.clerkId === session.userId && t.status === 'in-progress');
+        setActiveTicket(currentClerkTicket || null);
+    }
+  }, [tickets, session?.userId]);
+
 
   const waitingTickets = useMemo(() => tickets.filter(t => t.status === 'waiting'), [tickets]);
 
@@ -248,12 +262,10 @@ export function ClerkDashboard() {
 
     if (nextTicket && session) {
       resetServiceTimer();
-      const updatedTicket = { ...nextTicket, status: 'in-progress' as const, counter: clerkCounter.name };
-      setActiveTicket(updatedTicket);
+      const updatedTicket = { ...nextTicket, status: 'in-progress' as const, counter: clerkCounter.name, clerkId: session.userId };
       
       await updateTicketStatus(nextTicket.id, 'in-progress', clerkCounter.id, session.userId);
-      callTicket(updatedTicket, clerkCounter.name);
-      await refreshTickets(true); // pass true to notify other tabs
+      await refreshTickets(); 
 
       toast({
         title: "Chamando senha",
@@ -267,9 +279,11 @@ export function ClerkDashboard() {
     }
   };
 
-  const handleRecall = () => {
-    if (activeTicket && clerkCounter) {
-      callTicket(activeTicket, clerkCounter.name);
+  const handleRecall = async () => {
+    if (activeTicket && clerkCounter && session) {
+      // Re-call just means re-updating the timestamp to trigger displays
+      await updateTicketStatus(activeTicket.id, 'in-progress', clerkCounter.id, session.userId);
+      await refreshTickets();
       toast({
         title: "Rechamando Senha",
         description: `Senha ${activeTicket.number} rechamada para o ${clerkCounter.name}.`,
@@ -298,7 +312,7 @@ export function ClerkDashboard() {
       const ticketTags = tags.split(",").map(t => t.trim()).filter(Boolean);
       await finalizeTicket(activeTicket.id, notes, ticketTags);
       
-      await refreshTickets(true); // pass true to notify other tabs
+      await refreshTickets();
 
       setActiveTicket(null);
       resetServiceTimer();
@@ -474,3 +488,5 @@ export function ClerkDashboard() {
     </>
   );
 }
+
+    

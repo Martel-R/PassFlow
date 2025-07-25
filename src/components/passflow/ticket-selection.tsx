@@ -99,7 +99,7 @@ export function TicketSelection() {
       const newTicket = await dbAddTicket(selectedService, type);
       setGeneratedTicket(newTicket);
       setIsDialogOpen(true);
-      await refreshTickets(true);
+      await refreshTickets();
 
       toast({
         title: "Senha gerada com sucesso!",
@@ -261,3 +261,5 @@ export function TicketSelection() {
     </>
   );
 }
+
+    
