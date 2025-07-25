@@ -28,7 +28,7 @@ export type TicketType = {
   icon: string;
 };
 
-export type TicketStatus = "waiting" | "in-progress" | "finished" | "cancelled" | "free";
+export type TicketStatus = "waiting" | "in-progress" | "finished" | "cancelled";
 
 export type Ticket = {
   id: string;
@@ -49,6 +49,8 @@ export type Ticket = {
   tags?: string[];
 };
 
+export type ClerkStatus = 'online' | 'away';
+
 export type User = {
     id: string;
     name: string;
@@ -57,6 +59,8 @@ export type User = {
     role: 'admin' | 'clerk';
     counterId?: string;
     counterName?: string;
+    status: ClerkStatus;
+    statusMessage?: string | null;
 };
 
 export type AdvertisementMedia = {
@@ -81,7 +85,8 @@ export type TicketHistoryEntry = {
 export type LiveClerkState = {
     clerkId: string;
     clerkName: string;
-    status: 'in-progress' | 'free';
+    status: 'in-progress' | 'free' | 'away';
+    statusMessage: string | null;
     ticketNumber: string | null;
     serviceName: string | null;
     counterName: string | null;

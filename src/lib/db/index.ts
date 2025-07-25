@@ -13,6 +13,7 @@ import {
   TicketHistoryEntry,
   LiveClerkState,
   ClerkPerformanceStats,
+  ClerkStatus,
 } from '../types';
 import { mockCategories, mockCounters, mockServices, mockUsers, mockTicketTypes } from '../mock-data';
 
@@ -83,6 +84,8 @@ function initDb() {
       password TEXT NOT NULL,
       role TEXT NOT NULL CHECK(role IN ('admin', 'clerk')),
       counter_id TEXT,
+      status TEXT NOT NULL DEFAULT 'online',
+      status_message TEXT,
       FOREIGN KEY (counter_id) REFERENCES counters (id) ON DELETE SET NULL
     );
 
@@ -166,6 +169,10 @@ function migrateDb() {
         db.exec('ALTER TABLE tickets ADD COLUMN finished_timestamp INTEGER');
         db.exec('ALTER TABLE tickets ADD COLUMN clerk_id TEXT REFERENCES users(id)');
     }
+
+    // Migration for Clerk Status
+    try { db.prepare('SELECT status FROM users LIMIT 1').get(); } catch (e) { db.exec("ALTER TABLE users ADD COLUMN status TEXT NOT NULL DEFAULT 'online'"); }
+    try { db.prepare('SELECT status_message FROM users LIMIT 1').get(); } catch (e) { db.exec("ALTER TABLE users ADD COLUMN status_message TEXT"); }
 }
 
 
@@ -422,7 +429,7 @@ export async function getCounterById(id: string): Promise<Counter | null> {
 // User Functions
 export async function getUsers(): Promise<User[]> {
     const rows = db.prepare(`
-        SELECT u.id, u.name, u.username, u.role, u.counter_id, c.name as counterName
+        SELECT u.id, u.name, u.username, u.role, u.counter_id, c.name as counterName, u.status, u.status_message as statusMessage
         FROM users u
         LEFT JOIN counters c ON u.counter_id = c.id
         ORDER BY u.name ASC
@@ -431,12 +438,12 @@ export async function getUsers(): Promise<User[]> {
 }
 
 export async function getUserById(id: string): Promise<User | null> {
-    const row = db.prepare('SELECT id, name, username, role, counter_id as counterId FROM users WHERE id = ?').get(id) as any;
+    const row = db.prepare('SELECT id, name, username, role, counter_id as counterId, status, status_message as statusMessage FROM users WHERE id = ?').get(id) as any;
     return row || null;
 }
 
 export async function getUserByUsername(username: string): Promise<User | null> {
-    const row = db.prepare('SELECT id, name, username, password, role, counter_id FROM users WHERE username = ?').get(username) as User | undefined;
+    const row = db.prepare('SELECT * FROM users WHERE username = ?').get(username) as User | undefined;
     return row || null;
 }
 
@@ -464,6 +471,10 @@ export async function updateUser(id: string, data: Partial<UserData>): Promise<v
 
 export async function deleteUser(id: string): Promise<void> {
   db.prepare('DELETE FROM users WHERE id = ?').run(id);
+}
+
+export async function updateUserStatus(userId: string, status: ClerkStatus, message: string | null): Promise<void> {
+    db.prepare('UPDATE users SET status = ?, status_message = ? WHERE id = ?').run(status, message, userId);
 }
 
 
@@ -596,21 +607,41 @@ export async function getLiveClerkState(): Promise<LiveClerkState[]> {
         SELECT
             u.id as clerkId,
             u.name as clerkName,
-            COALESCE(t.status, 'free') as status,
-            t.number as ticketNumber,
-            t.service_name as serviceName,
+            u.status as userStatus,
+            u.status_message as statusMessage,
+            COALESCE(t_in_progress.status, 'free') as ticketStatus,
+            t_in_progress.number as ticketNumber,
+            t_in_progress.service_name as serviceName,
             c.name as counterName,
-            t.called_timestamp as calledTimestamp
+            t_in_progress.called_timestamp as calledTimestamp
         FROM users u
         LEFT JOIN (
             SELECT * FROM tickets WHERE status = 'in-progress'
-        ) t ON u.id = t.clerk_id
+        ) t_in_progress ON u.id = t_in_progress.clerk_id
         LEFT JOIN counters c ON u.counter_id = c.id
         WHERE u.role = 'clerk' OR (u.role = 'admin' AND u.counter_id IS NOT NULL)
         ORDER BY u.name
     `).all() as any[];
+    
+    return rows.map(row => {
+        let status: LiveClerkState['status'] = 'free';
+        if (row.userStatus === 'away') {
+            status = 'away';
+        } else if (row.ticketStatus === 'in-progress') {
+            status = 'in-progress';
+        }
 
-    return rows;
+        return {
+            clerkId: row.clerkId,
+            clerkName: row.clerkName,
+            status: status,
+            statusMessage: row.statusMessage,
+            ticketNumber: row.ticketNumber,
+            serviceName: row.serviceName,
+            counterName: row.counterName,
+            calledTimestamp: row.calledTimestamp,
+        }
+    });
 }
 
 export async function getClerkPerformanceStats(

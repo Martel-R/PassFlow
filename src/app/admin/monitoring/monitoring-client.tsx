@@ -25,7 +25,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Activity, Users, Clock, Timer } from "lucide-react";
+import { Activity, Users, Clock, Timer, WifiOff, MessageSquare } from "lucide-react";
 import { formatDistanceToNowStrict } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { LiveClerkState, ClerkPerformanceStats } from "@/lib/types";
@@ -66,6 +66,7 @@ export function MonitoringClient({
     };
     
     const activeClerks = liveState.filter(s => s.status === 'in-progress');
+    const awayClerks = liveState.filter(s => s.status === 'away');
 
     return (
         <div className="space-y-6">
@@ -90,6 +91,16 @@ export function MonitoringClient({
                          <p className="text-xs text-muted-foreground">Atendentes com chamado ativo</p>
                     </CardContent>
                 </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Atendentes Ausentes</CardTitle>
+                        <WifiOff className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{awayClerks.length}</div>
+                         <p className="text-xs text-muted-foreground">Atendentes que não estão disponíveis</p>
+                    </CardContent>
+                </Card>
             </div>
 
             <Card>
@@ -105,10 +116,10 @@ export function MonitoringClient({
                             <TableRow>
                                 <TableHead>Atendente</TableHead>
                                 <TableHead>Status</TableHead>
-                                <TableHead>Senha</TableHead>
+                                <TableHead>Senha / Mensagem</TableHead>
                                 <TableHead>Serviço</TableHead>
                                 <TableHead>Balcão</TableHead>
-                                <TableHead>Tempo no Atendimento</TableHead>
+                                <TableHead>Tempo</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -116,15 +127,30 @@ export function MonitoringClient({
                                <TableRow key={clerk.clerkId}>
                                    <TableCell className="font-medium">{clerk.clerkName}</TableCell>
                                    <TableCell>
-                                        <Badge variant={clerk.status === 'in-progress' ? 'default' : 'secondary'}>
-                                          {clerk.status === 'in-progress' ? 'Atendendo' : 'Livre'}
+                                        <Badge variant={
+                                            clerk.status === 'in-progress' ? 'default' 
+                                            : clerk.status === 'away' ? 'destructive' 
+                                            : 'secondary'
+                                        }>
+                                          {
+                                            clerk.status === 'in-progress' ? 'Atendendo'
+                                            : clerk.status === 'away' ? 'Ausente'
+                                            : 'Livre'
+                                          }
                                         </Badge>
                                    </TableCell>
-                                   <TableCell>{clerk.ticketNumber || '-'}</TableCell>
+                                   <TableCell>
+                                     {clerk.status === 'away' ? (
+                                        <span className="flex items-center gap-1 text-muted-foreground italic">
+                                            <MessageSquare className="h-3 w-3" /> 
+                                            {clerk.statusMessage || '-'}
+                                        </span>
+                                      ) : (clerk.ticketNumber || '-')}
+                                   </TableCell>
                                    <TableCell>{clerk.serviceName || '-'}</TableCell>
                                    <TableCell>{clerk.counterName || 'N/A'}</TableCell>
                                    <TableCell>
-                                    {clerk.calledTimestamp ? formatDistanceToNowStrict(new Date(clerk.calledTimestamp), { locale: ptBR }) : '-'}
+                                    {clerk.status === 'in-progress' && clerk.calledTimestamp ? formatDistanceToNowStrict(new Date(clerk.calledTimestamp), { locale: ptBR }) : '-'}
                                    </TableCell>
                                </TableRow>
                            )) : (

@@ -37,14 +37,122 @@ import {
   CheckCircle,
   Users,
   Clock,
-  Tag
+  Tag,
+  ChevronDown,
+  Circle,
+  LogOut,
+  Wifi,
+  WifiOff
 } from "lucide-react";
-import { getCounterById, finalizeTicket, updateTicketStatus, getServicesForCounter } from "@/lib/db";
-import { Ticket, Counter, Service } from "@/lib/types";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { getCounterById, finalizeTicket, updateTicketStatus, getServicesForCounter, getUserById, updateUserStatus } from "@/lib/db";
+import { Ticket, Counter, Service, ClerkStatus } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useTickets, usePassFlowActions, usePassFlowStore } from "@/lib/store";
+
+
+function StatusSelector({ userId, onStatusChange }: { userId: string, onStatusChange: () => void }) {
+    const [userStatus, setUserStatus] = useState<ClerkStatus>('online');
+    const [statusMessage, setStatusMessage] = useState<string>("");
+    const [isModalOpen, setModalOpen] = useState(false);
+    const { toast } = useToast();
+
+    useEffect(() => {
+        async function fetchStatus() {
+            const user = await getUserById(userId);
+            if (user) {
+                setUserStatus(user.status);
+                setStatusMessage(user.statusMessage || "");
+            }
+        }
+        fetchStatus();
+    }, [userId]);
+
+    const handleSave = async () => {
+        await updateUserStatus(userId, userStatus, statusMessage);
+        toast({ title: "Status atualizado!" });
+        setModalOpen(false);
+        onStatusChange();
+    };
+
+    const openModalWithStatus = (status: ClerkStatus) => {
+        setUserStatus(status);
+        if (status === 'online') {
+            setStatusMessage("");
+            updateUserStatus(userId, 'online', null).then(() => {
+                toast({ title: "Status atualizado para Online!" });
+                onStatusChange();
+            });
+        } else {
+            setModalOpen(true);
+        }
+    };
+
+    const statusConfig = {
+        online: { icon: Wifi, label: "Online", color: "text-green-500" },
+        away: { icon: WifiOff, label: "Ausente", color: "text-red-500" },
+    };
+    
+    const CurrentIcon = statusConfig[userStatus].icon;
+
+    return (
+        <>
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start">
+                         <CurrentIcon className={`mr-2 h-4 w-4 ${statusConfig[userStatus].color}`} />
+                         {statusConfig[userStatus].label}
+                         <ChevronDown className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56">
+                    <DropdownMenuLabel>Definir meu status</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => openModalWithStatus('online')}>
+                        <Wifi className="mr-2 h-4 w-4 text-green-500" />
+                        <span>Online</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => openModalWithStatus('away')}>
+                        <WifiOff className="mr-2 h-4 w-4 text-red-500" />
+                        <span>Ausente</span>
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+
+            <Dialog open={isModalOpen} onOpenChange={setModalOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Definir status como "Ausente"</DialogTitle>
+                        <DialogDescription>Deixe uma mensagem para que os administradores saibam o motivo.</DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <Label htmlFor="statusMessage">Mensagem de ausência (opcional)</Label>
+                        <Input 
+                            id="statusMessage"
+                            value={statusMessage}
+                            onChange={(e) => setStatusMessage(e.target.value)}
+                            placeholder="Ex: Em pausa para o almoço"
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button variant="ghost" onClick={() => setModalOpen(false)}>Cancelar</Button>
+                        <Button onClick={handleSave}>Salvar Status</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </>
+    );
+}
+
 
 export function ClerkDashboard() {
   const tickets = useTickets();
@@ -55,6 +163,7 @@ export function ClerkDashboard() {
   const [notes, setNotes] = useState("");
   const [tags, setTags] = useState("");
   const [clerkCounter, setClerkCounter] = useState<Counter | null>(null);
+  const [clerkStatus, setClerkStatus] = useState<ClerkStatus>('online');
   const { toast } = useToast();
   
   const [serviceStartTime, setServiceStartTime] = useState<number | null>(null);
@@ -65,16 +174,21 @@ export function ClerkDashboard() {
     refreshTickets();
   }, [refreshTickets]);
 
-  useEffect(() => {
-    const fetchCounter = async () => {
-      if (session?.counterId) {
-        const counter = await getCounterById(session.counterId);
-        setClerkCounter(counter);
-      }
-    };
+  const fetchClerkData = async () => {
     if (session) {
-      fetchCounter();
+      const user = await getUserById(session.userId);
+       if (user?.counterId) {
+            const counter = await getCounterById(user.counterId);
+            setClerkCounter(counter);
+        }
+        if (user) {
+            setClerkStatus(user.status);
+        }
     }
+  };
+
+  useEffect(() => {
+    fetchClerkData();
   }, [session]);
 
   // Timer effect
@@ -98,6 +212,10 @@ export function ClerkDashboard() {
   };
 
   const handleCallNext = async () => {
+    if (clerkStatus === 'away') {
+        toast({ title: "Você está ausente", description: "Mude seu status para 'Online' para chamar senhas.", variant: "destructive" });
+        return;
+    }
     if (activeTicket && activeTicket.status !== 'finished') {
         toast({
             title: "Atendimento em andamento",
@@ -230,6 +348,7 @@ export function ClerkDashboard() {
           </p>
         </div>
         <div className="flex items-center space-x-2">
+          <StatusSelector userId={session.userId} onStatusChange={fetchClerkData} />
           <Button onClick={handleCallNext}>
             <Bell className="mr-2 h-4 w-4" /> Chamar Próximo
           </Button>

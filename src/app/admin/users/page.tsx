@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { PlusCircle, Edit } from "lucide-react";
+import { PlusCircle, Edit, Wifi, WifiOff } from "lucide-react";
 import { getUsers, getCounters, addUser, updateUser, deleteUser } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import type { User, Counter } from "@/lib/types";
@@ -110,6 +110,7 @@ export default async function AdminUsersPage() {
                 <TableHead>Nome</TableHead>
                 <TableHead>Usuário</TableHead>
                 <TableHead>Perfil</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Balcão Associado</TableHead>
                 <TableHead className="w-[180px] text-right">Ações</TableHead>
               </TableRow>
@@ -123,6 +124,12 @@ export default async function AdminUsersPage() {
                      <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
                         {user.role === 'admin' ? 'Administrador' : 'Atendente'}
                      </Badge>
+                  </TableCell>
+                   <TableCell>
+                      <Badge variant={user.status === 'online' ? 'secondary' : 'destructive'} className="capitalize">
+                        {user.status === 'online' ? <Wifi className="mr-1 h-3 w-3" /> : <WifiOff className="mr-1 h-3 w-3" />}
+                        {user.status === 'online' ? 'Online' : 'Ausente'}
+                      </Badge>
                   </TableCell>
                   <TableCell>{user.counterName || "N/A"}</TableCell>
                   <TableCell className="text-right">
