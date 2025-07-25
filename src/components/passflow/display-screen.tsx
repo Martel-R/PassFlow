@@ -19,7 +19,7 @@ import Image from "next/image";
 import { Logo } from "../layout/logo";
 import type { AdvertisementMedia, Ticket } from "@/lib/types";
 import YouTube from 'react-youtube';
-import { useTickets, useOrganizationLogo, useOrganizationName } from "@/lib/store";
+import { usePassFlowStore, useOrganizationLogo, useOrganizationName, usePassFlowActions } from "@/lib/store";
 
 interface DisplayScreenProps {
   organizationName?: string | null;
@@ -47,7 +47,8 @@ export function DisplayScreen({
   organizationName: initialName,
   mediaItems
 }: DisplayScreenProps) {
-  const tickets = useTickets();
+  const tickets = usePassFlowStore((state) => state.tickets);
+  const { refreshTickets } = usePassFlowActions();
   const [callHistory, setCallHistory] = useState<Ticket[]>([]);
   const [calledTicket, setCalledTicket] = useState<Ticket | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -66,6 +67,14 @@ export function DisplayScreen({
   }, [mediaItems.length]);
   
   const currentMedia = mediaItems[currentIndex];
+  
+  // Polling effect to refresh tickets
+  useEffect(() => {
+      const interval = setInterval(() => {
+          refreshTickets();
+      }, 3000); // Poll every 3 seconds
+      return () => clearInterval(interval);
+  }, [refreshTickets]);
 
   useEffect(() => {
     if (timerRef.current) {
@@ -94,27 +103,25 @@ export function DisplayScreen({
     // Check for the newest called ticket
     const latestCalled = updatedHistory[0];
 
+    // If there is a newly called ticket that we haven't shown yet
     if (latestCalled && latestCalled.id !== lastCalledTicketId.current) {
         lastCalledTicketId.current = latestCalled.id;
-        setCalledTicket(latestCalled); // This will be the ticket to display in the modal
+        setCalledTicket(latestCalled);
+        setIsModalOpen(true);
+        setAnimationKey(prev => prev + 1); // Force re-render of dialog for animation
+        
+        // Play sound
+        const audio = new Audio('/notification.mp3'); 
+        audio.play().catch(e => console.error("Error playing sound:", e));
+        
+        // Close modal after a delay
+        const timer = setTimeout(() => {
+            setIsModalOpen(false);
+        }, 5000);
+
+        return () => clearTimeout(timer);
     }
   }, [tickets]);
-
-  useEffect(() => {
-    if (calledTicket) {
-      setIsModalOpen(true);
-      setAnimationKey(prev => prev + 1);
-      
-      const audio = new Audio('/notification.mp3'); 
-      audio.play().catch(e => console.error("Error playing sound:", e));
-      
-      const timer = setTimeout(() => {
-        setIsModalOpen(false);
-      }, 5000);
-
-      return () => clearTimeout(timer);
-    }
-  }, [calledTicket]); 
 
   const renderMedia = () => {
     if (!currentMedia) {

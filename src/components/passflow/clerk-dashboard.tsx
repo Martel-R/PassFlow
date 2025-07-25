@@ -57,7 +57,7 @@ import { Ticket, Counter, Service, ClerkStatus } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useTickets, usePassFlowActions, usePassFlowStore, useCalledTicket, useCallHistory } from "@/lib/store";
+import { usePassFlowActions, usePassFlowStore } from "@/lib/store";
 
 
 function StatusSelector({ userId, onStatusChange }: { userId: string, onStatusChange: () => void }) {
@@ -155,7 +155,7 @@ function StatusSelector({ userId, onStatusChange }: { userId: string, onStatusCh
 
 
 export function ClerkDashboard() {
-  const tickets = useTickets();
+  const tickets = usePassFlowStore((state) => state.tickets);
   const session = usePassFlowStore((state) => state.session);
   const { refreshTickets } = usePassFlowActions();
   const [activeTicket, setActiveTicket] = useState<Ticket | null>(null);
@@ -169,9 +169,12 @@ export function ClerkDashboard() {
   const [serviceStartTime, setServiceStartTime] = useState<number | null>(null);
   const [serviceDuration, setServiceDuration] = useState<number>(0);
   
-  // Fetch initial data
+  // Polling effect to refresh tickets from DB
   useEffect(() => {
-    refreshTickets();
+    const interval = setInterval(() => {
+        refreshTickets();
+    }, 5000); // Poll every 5 seconds
+    return () => clearInterval(interval);
   }, [refreshTickets]);
 
   const fetchClerkData = async () => {
@@ -220,16 +223,11 @@ export function ClerkDashboard() {
     const attendableCategoryIds = new Set(clerkCounter.assignedCategories);
 
     return tickets.filter(ticket => {
-        // Find the service for the ticket to check its category.
-        // This assumes services are loaded or can be fetched, for now we will check against all services in DB
-        // A better approach would be to have services available in the store.
         return ticket.status === 'waiting' && attendableCategoryIds.has(ticket.serviceCategoryId || '');
     }).sort((a, b) => {
-        // Higher priorityWeight first
         if (a.priorityWeight !== b.priorityWeight) {
             return b.priorityWeight - a.priorityWeight;
         }
-        // Otherwise, sort by timestamp (older first)
         return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
     });
 }, [tickets, clerkCounter]);
@@ -291,7 +289,6 @@ export function ClerkDashboard() {
 
   const handleRecall = async () => {
     if (activeTicket && clerkCounter && session) {
-      // Re-call just means re-updating the timestamp to trigger displays
       await updateTicketStatus(activeTicket.id, 'in-progress', clerkCounter.id, session.userId);
       await refreshTickets();
       toast({

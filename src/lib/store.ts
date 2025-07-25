@@ -25,23 +25,14 @@ export const useOrganizationName = () => usePassFlowStore((state) => state.organ
 export const useOrganizationLogo = () => usePassFlowStore((state) => state.organizationLogo);
 
 
-export type CalledTicket = {
-  number: string;
-  counter: string;
-  timestamp: number;
-};
-
 type PassFlowState = {
   tickets: Ticket[];
-  calledTicket: CalledTicket | null;
-  callHistory: CalledTicket[];
   session: Session | null;
   organizationName: string | null;
   organizationLogo: string | null;
   actions: {
     initialize: (params: InitializeParams) => Promise<void>;
     refreshTickets: () => Promise<void>;
-    callTicket: (ticket: Ticket, counterName: string) => void;
     setSession: (session: Session | null) => void;
     clearSession: () => void;
   };
@@ -49,8 +40,6 @@ type PassFlowState = {
 
 export const usePassFlowStore = create<PassFlowState>((set, get) => ({
   tickets: [],
-  calledTicket: null,
-  callHistory: [],
   session: null,
   organizationName: null,
   organizationLogo: null,
@@ -81,28 +70,9 @@ export const usePassFlowStore = create<PassFlowState>((set, get) => ({
             console.error("Failed to refresh tickets from DB:", error);
         }
     },
-    callTicket: (ticket, counterName) => {
-      // This is now mainly for local UI updates if needed, but primary sync is via polling
-      const newCall: CalledTicket = {
-        number: ticket.number,
-        counter: counterName,
-        timestamp: Date.now(),
-      };
-      set((state) => ({
-        calledTicket: newCall,
-        callHistory: (state.calledTicket?.number !== newCall.number || state.calledTicket?.counter !== newCall.counter)
-            ? [newCall, ...state.callHistory].slice(0, 10) 
-            : state.callHistory,
-      }));
-    },
     setSession: (session) => set({ session }),
     clearSession: () => set({ session: null }),
   },
 }));
 
-export const useTickets = () => usePassFlowStore((state) => state.tickets);
-export const useCalledTicket = () => usePassFlowStore((state) => state.calledTicket);
-export const useCallHistory = () => usePassFlowStore((state) => state.callHistory);
 export const usePassFlowActions = () => usePassFlowStore((state) => state.actions);
-
-    
