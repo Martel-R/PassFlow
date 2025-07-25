@@ -157,7 +157,7 @@ function StatusSelector({ userId, onStatusChange }: { userId: string, onStatusCh
 export function ClerkDashboard() {
   const tickets = useTickets();
   const session = usePassFlowStore((state) => state.session);
-  const { callTicket, refreshTickets } = usePassFlowActions();
+  const { refreshTickets } = usePassFlowActions();
   const [activeTicket, setActiveTicket] = useState<Ticket | null>(null);
   const [isFinalizeModalOpen, setFinalizeModalOpen] = useState(false);
   const [notes, setNotes] = useState("");
@@ -169,14 +169,9 @@ export function ClerkDashboard() {
   const [serviceStartTime, setServiceStartTime] = useState<number | null>(null);
   const [serviceDuration, setServiceDuration] = useState<number>(0);
   
-  // Fetch initial data & set up polling
+  // Fetch initial data
   useEffect(() => {
     refreshTickets();
-    const intervalId = setInterval(() => {
-        refreshTickets();
-    }, 5000); // Poll every 5 seconds
-
-    return () => clearInterval(intervalId);
   }, [refreshTickets]);
 
   const fetchClerkData = async () => {
@@ -218,7 +213,27 @@ export function ClerkDashboard() {
   }, [tickets, session?.userId]);
 
 
-  const waitingTickets = useMemo(() => tickets.filter(t => t.status === 'waiting'), [tickets]);
+  const waitingTickets = useMemo(() => {
+    if (!clerkCounter) return [];
+    
+    // Create a Set of category IDs that this counter can attend to.
+    const attendableCategoryIds = new Set(clerkCounter.assignedCategories);
+
+    return tickets.filter(ticket => {
+        // Find the service for the ticket to check its category.
+        // This assumes services are loaded or can be fetched, for now we will check against all services in DB
+        // A better approach would be to have services available in the store.
+        return ticket.status === 'waiting' && attendableCategoryIds.has(ticket.serviceCategoryId || '');
+    }).sort((a, b) => {
+        // Higher priorityWeight first
+        if (a.priorityWeight !== b.priorityWeight) {
+            return b.priorityWeight - a.priorityWeight;
+        }
+        // Otherwise, sort by timestamp (older first)
+        return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+    });
+}, [tickets, clerkCounter]);
+
 
   const resetServiceTimer = () => {
     setServiceStartTime(null);
@@ -244,26 +259,21 @@ export function ClerkDashboard() {
         return;
     }
 
-    // Get all services this counter can attend to
     const availableServices = await getServicesForCounter(clerkCounter.id);
     const availableServiceIds = new Set(availableServices.map(s => s.id));
 
-    const nextTicket = waitingTickets
-        .filter(ticket => availableServiceIds.has(ticket.serviceId || '')) // Filter tickets clerk can attend
+    const nextTicket = tickets
+        .filter(ticket => ticket.status === 'waiting' && availableServiceIds.has(ticket.serviceId))
         .sort((a, b) => {
-           // Higher priorityWeight first
            if (a.priorityWeight !== b.priorityWeight) {
                 return b.priorityWeight - a.priorityWeight;
            }
-            // Otherwise, sort by timestamp (older first)
-            return a.timestamp.getTime() - b.timestamp.getTime();
+            return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
         })
-        .find(ticket => ticket); // Find the first one in the sorted list
+        .find(ticket => ticket);
 
     if (nextTicket && session) {
       resetServiceTimer();
-      const updatedTicket = { ...nextTicket, status: 'in-progress' as const, counter: clerkCounter.name, clerkId: session.userId };
-      
       await updateTicketStatus(nextTicket.id, 'in-progress', clerkCounter.id, session.userId);
       await refreshTickets(); 
 
@@ -488,5 +498,3 @@ export function ClerkDashboard() {
     </>
   );
 }
-
-    

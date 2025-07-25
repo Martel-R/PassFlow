@@ -62,6 +62,7 @@ function initDb() {
       id TEXT PRIMARY KEY,
       number TEXT NOT NULL,
       service_id TEXT NOT NULL,
+      service_category_id TEXT,
       created_timestamp INTEGER NOT NULL,
       called_timestamp INTEGER,
       finished_timestamp INTEGER,
@@ -173,6 +174,7 @@ function migrateDb() {
     // Migration for Clerk Status
     try { db.prepare('SELECT status FROM users LIMIT 1').get(); } catch (e) { db.exec("ALTER TABLE users ADD COLUMN status TEXT NOT NULL DEFAULT 'online'"); }
     try { db.prepare('SELECT status_message FROM users LIMIT 1').get(); } catch (e) { db.exec("ALTER TABLE users ADD COLUMN status_message TEXT"); }
+    try { db.prepare('SELECT service_category_id FROM tickets LIMIT 1').get(); } catch (e) { db.exec("ALTER TABLE tickets ADD COLUMN service_category_id TEXT"); }
 }
 
 
@@ -323,6 +325,7 @@ export async function getTickets(): Promise<Ticket[]> {
             t.notes, 
             t.tags,
             t.service_id as serviceId,
+            t.service_category_id as serviceCategoryId,
             t.clerk_id as clerkId
         FROM tickets t
         LEFT JOIN counters c ON t.counter_id = c.id
@@ -357,15 +360,16 @@ export async function addTicket(service: Service, ticketType: TicketType): Promi
   const status = 'waiting';
 
   db.prepare(`
-        INSERT INTO tickets (id, number, service_id, created_timestamp, status, service_name, priority_weight)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(id, ticketNumber, service.id, timestamp.getTime(), status, service.name, ticketType.priorityWeight);
+        INSERT INTO tickets (id, number, service_id, created_timestamp, status, service_name, priority_weight, service_category_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(id, ticketNumber, service.id, timestamp.getTime(), status, service.name, ticketType.priorityWeight, service.categoryId);
     
   const newTicket: Ticket = {
     id,
     number: ticketNumber,
     serviceId: service.id,
     serviceName: service.name,
+    serviceCategoryId: service.categoryId,
     timestamp: timestamp,
     status: 'waiting',
     priorityWeight: ticketType.priorityWeight,
@@ -435,7 +439,7 @@ export async function getCounterById(id: string): Promise<Counter | null> {
 // User Functions
 export async function getUsers(): Promise<User[]> {
     const rows = db.prepare(`
-        SELECT u.id, u.name, u.username, u.role, u.counter_id, c.name as counterName, u.status, u.status_message as statusMessage
+        SELECT u.id, u.name, u.username, u.role, u.counter_id as counterId, c.name as counterName, u.status, u.status_message as statusMessage
         FROM users u
         LEFT JOIN counters c ON u.counter_id = c.id
         ORDER BY u.name ASC
@@ -680,5 +684,3 @@ export async function getClerkPerformanceStats(
     const rows = db.prepare(query).all(...params) as any[];
     return rows;
 }
-
-    

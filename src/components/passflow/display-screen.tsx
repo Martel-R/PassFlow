@@ -19,8 +19,7 @@ import Image from "next/image";
 import { Logo } from "../layout/logo";
 import type { AdvertisementMedia, Ticket } from "@/lib/types";
 import YouTube from 'react-youtube';
-import { getTickets } from "@/lib/db";
-import { useOrganizationLogo, useOrganizationName } from "@/lib/store";
+import { useTickets, useOrganizationLogo, useOrganizationName } from "@/lib/store";
 
 interface DisplayScreenProps {
   organizationName?: string | null;
@@ -48,6 +47,7 @@ export function DisplayScreen({
   organizationName: initialName,
   mediaItems
 }: DisplayScreenProps) {
+  const tickets = useTickets();
   const [callHistory, setCallHistory] = useState<Ticket[]>([]);
   const [calledTicket, setCalledTicket] = useState<Ticket | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -84,30 +84,21 @@ export function DisplayScreen({
   }, [currentIndex, mediaItems, currentMedia, advanceSlide]);
 
   useEffect(() => {
-    const fetchAndUpdateTickets = async () => {
-        const allTickets = await getTickets();
+    // Update call history with all tickets that have a called_timestamp
+    const updatedHistory = tickets
+        .filter(t => t.calledTimestamp)
+        .sort((a, b) => new Date(b.calledTimestamp!).getTime() - new Date(a.calledTimestamp!).getTime());
+    
+    setCallHistory(updatedHistory);
+    
+    // Check for the newest called ticket
+    const latestCalled = updatedHistory[0];
 
-        // Update call history with all tickets that have a called_timestamp
-        const updatedHistory = allTickets
-            .filter(t => t.calledTimestamp)
-            .sort((a, b) => new Date(b.calledTimestamp!).getTime() - new Date(a.calledTimestamp!).getTime());
-        
-        setCallHistory(updatedHistory);
-        
-        // Check for the newest called ticket
-        const latestCalled = updatedHistory[0];
-
-        if (latestCalled && latestCalled.id !== lastCalledTicketId.current) {
-            lastCalledTicketId.current = latestCalled.id;
-            setCalledTicket(latestCalled); // This will be the ticket to display in the modal
-        }
-    };
-
-    fetchAndUpdateTickets(); // Initial fetch
-    const intervalId = setInterval(fetchAndUpdateTickets, 3000); // Poll every 3 seconds
-
-    return () => clearInterval(intervalId);
-  }, []);
+    if (latestCalled && latestCalled.id !== lastCalledTicketId.current) {
+        lastCalledTicketId.current = latestCalled.id;
+        setCalledTicket(latestCalled); // This will be the ticket to display in the modal
+    }
+  }, [tickets]);
 
   useEffect(() => {
     if (calledTicket) {
@@ -239,5 +230,3 @@ export function DisplayScreen({
     </>
   );
 }
-
-    

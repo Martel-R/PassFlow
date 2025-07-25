@@ -35,6 +35,7 @@ export type Ticket = {
   number: string;
   serviceName: string;
   serviceId: string;
+  serviceCategoryId?: string;
   timestamp: Date; // Keep `timestamp` as the primary user-facing time for simplicity in components
   createdTimestamp?: Date;
   calledTimestamp?: Date;

@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -26,37 +26,38 @@ interface TicketTypeFormProps {
   children: React.ReactNode;
 }
 
+const defaultState = {
+    name: "",
+    description: "",
+    prefix: "",
+    priorityWeight: 1,
+    icon: "Box",
+};
+
 export function TicketTypeForm({ 
   initialData, 
   formAction, 
   children 
 }: TicketTypeFormProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [formData, setFormData] = useState<FormData>(
-    initialData || {
-      name: "",
-      description: "",
-      prefix: "",
-      priorityWeight: 1,
-      icon: "Box",
-    }
-  );
+  const [formData, setFormData] = useState<FormData>(initialData || defaultState);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
-
-  const handleOpenChange = (open: boolean) => {
-    if (!open) {
-      // Reset form when dialog closes
-      setFormData(initialData || { name: "", description: "", prefix: "", priorityWeight: 1, icon: "Box" });
+  
+  useEffect(() => {
+    if (isOpen && initialData) {
+        setFormData(initialData);
+    } else if (isOpen) {
+        setFormData(defaultState);
     }
-    setIsOpen(open);
-  };
+  }, [isOpen, initialData]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
+    const isNumber = type === 'number';
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'number' ? parseInt(value, 10) || 0 : value
+      [name]: isNumber ? (parseInt(value, 10) || 0) : value
     }));
   };
 
@@ -65,12 +66,16 @@ export function TicketTypeForm({
         toast({ title: "Erro", description: "Nome e Prefixo são obrigatórios.", variant: "destructive" });
         return;
     }
+     if (formData.prefix.length > 1) {
+        toast({ title: "Erro", description: "O prefixo deve ter apenas 1 caractere.", variant: "destructive" });
+        return;
+    }
 
     startTransition(async () => {
       const result = await formAction(formData, initialData?.id);
       if (result.success) {
         toast({ title: "Sucesso!", description: result.message });
-        handleOpenChange(false);
+        setIsOpen(false);
       } else {
         toast({ title: "Erro", description: result.message, variant: "destructive" });
       }
@@ -84,7 +89,7 @@ export function TicketTypeForm({
     : "Crie um novo tipo de senha para o sistema.";
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
@@ -114,7 +119,7 @@ export function TicketTypeForm({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => handleOpenChange(false)}>Cancelar</Button>
+          <Button variant="ghost" onClick={() => setIsOpen(false)}>Cancelar</Button>
           <Button onClick={handleSubmit} disabled={isPending}>
             {isPending ? "Salvando..." : "Salvar"}
           </Button>
